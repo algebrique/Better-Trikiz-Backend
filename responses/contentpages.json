@@ -1147,13 +1147,13 @@
           "_type": "FortPlaylistInfo"
         },
         {
-          "image": "https://i.pinimg.com/1200x/4c/cd/64/4ccd64d898fb60846104964ac3bbad53.jpg",
+          "image": "https://i.pinimg.com/1200x/5d/74/14/5d741452ad21598735b2775e53d0549a.jpg",
           "playlist_name": "Playlist_DefaultSolo",
           "hidden": false,
           "special_border": "None",
           "_type": "FortPlaylistInfo",
-          "description": "j'ai vrm envie de femboy la frr\n\n",
-          "display_name": "Femboy Event" 
+          "description": "De la solo qui est trikiz\n\n",
+          "display_name": "Trikiz FN Solo" 
       },
         {
           "image": "https://i.pinimg.com/736x/5e/a2/2c/5ea22cd118427126e6043266ad823d37.jpg",
@@ -6259,14 +6259,14 @@
       "motds": [
         {
           "entryType": "Website",
-          "image": "https://i.pinimg.com/1200x/4c/cd/64/4ccd64d898fb60846104964ac3bbad53.jpg",
-          "tileImage": "https://i.pinimg.com/1200x/4c/cd/64/4ccd64d898fb60846104964ac3bbad53.jpg",
+          "image": "https://i.pinimg.com/1200x/5d/74/14/5d741452ad21598735b2775e53d0549a.jpg",
+          "tileImage": "https://i.pinimg.com/1200x/5d/74/14/5d741452ad21598735b2775e53d0549a.jpg",
           "videoMute": false,
           "hidden": false,
           "tabTitleOverride": "Better TrikizFN",
           "_type": "CommonUI Simple Message MOTD",
-          "title": "Vive les Femboys sah",
-          "body": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
+          "title": "Create by @2fp",
+          "body": "gab gab gab",
           "offerAction": "ShowOfferDetails",
           "videoLoop": false,
           "videoStreamingEnabled": false,
@@ -6297,11 +6297,11 @@
       ],
       "messages": [
         {
-          "image": "https://i.pinimg.com/1200x/4c/cd/64/4ccd64d898fb60846104964ac3bbad53.jpg",
+          "image": "https://i.pinimg.com/1200x/5d/74/14/5d741452ad21598735b2775e53d0549a.jpg",
           "hidden": false, 
           "_type": "CommonUI Simple Message Base",
-          "adspace": "Vive les Femboys sah",
-          "title": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
+          "adspace": "Create by @2fp",
+          "title": "gab gab gab",
           "body": "Keone deviens femboy pour moi stp",
           "spotlight": true
         }
@@ -6376,8 +6376,8 @@
           "image": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
           "hidden": true,
           "_type": "CommonUI Simple Message Base",
-          "adspace": "Vive les Femboys sah",
-          "title": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
+          "adspace": "Create by @2fp",
+          "title": "gab gab gab",
           "body": "Keone deviens femboy pour moi stp",
           "spotlight": false
         },
@@ -6387,7 +6387,7 @@
           "_type": "CommonUI Simple Message Base",
           "adspace": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
           "title": "Better TrikizFN",
-          "body": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
+          "body": "gab gab gab",
           "spotlight": true
         }
       ]

@@ -13,6 +13,138 @@ const seasonlimit = config.bSeasonlimit;
 const dailyItemsCount = config.bDailyItemsAmount;
 const featuredItemsCount = config.bFeaturedItemsAmount;
 
+const prices = {
+    characters: {
+        common: 800,
+        uncommon: 800,
+        rare: 1200,
+        epic: 1500,
+        legendary: 2000,
+        dark: 1200,
+        dc: 1500,
+        gaminglegends: 1500,
+        frozen: 1200,
+        lava: 1200,
+        marvel: 1500,
+        starwars: 2000,
+        slurp: 1800,
+        shadow: 1200,
+        icon: 1500
+    },
+    pickaxes: {
+        common: 500,
+        uncommon: 500,
+        rare: 800,
+        epic: 1200,
+        legendary: 1500,
+        icon: 500,
+        dark: 1200,
+        gaminglegends: 800,
+        frozen: 1000,
+        slurp: 1500,
+        starwars: 1000,
+        shadow: 1000,
+        marvel: 1000,
+        dc: 800,
+        lava: 1200
+    },
+    gliders: {
+        common: 300,
+        uncommon: 500,
+        rare: 800,
+        epic: 1200,
+        legendary: 1500,
+        icon: 500,
+        dc: 1200,
+        dark: 500,
+        frozen: 1000,
+        shadow: 1000,
+        slurp: 1000,
+        starwars: 1000,
+        marvel: 1000,
+        lava: 1200
+    },
+    wraps: {
+        common: 300,
+        uncommon: 300,
+        rare: 500,
+        epic: 700,
+        legendary: 1000,
+        icon: 700,
+        dc: 1000,
+        dark: 700,
+        shadow: 700,
+        slurp: 700,
+        frozen: 500,
+        starwars: 500,
+        marvel: 500,
+        lava: 700
+    },
+    dances: {
+        common: 200,
+        uncommon: 200,
+        rare: 500,
+        epic: 800,
+        legendary: 800,
+        icon: 500,
+        marvel: 500,
+        starwars: 500,
+        dc: 300,
+        dark: 800,
+        slurp: 750,
+        frozen: 800,
+        shadow: 500,
+        lava: 800
+    },
+    contrails: {
+        common: 300,
+        uncommon: 300,
+        rare: 500,
+        epic: 500,
+        legendary: 750,
+        icon: 750,
+        dc: 1000,
+        dark: 750,
+        shadow: 750,
+        frozen: 1000,
+        starwars: 1000,
+        slurp: 750,
+        marvel: 1000,
+        lava: 750
+    },
+    backpacks: {
+        common: 400,
+        uncommon: 400,
+        rare: 600,
+        epic: 800,
+        legendary: 1000,
+        starwars: 1500,
+        gaminglegends: 800,
+        marvel: 1200,
+        dc: 1200,
+        dark: 800,
+        slurp: 1000,
+        shadow: 1000,
+        frozen: 1200,
+        lava: 800
+    },
+    musicPacks: {
+        common: 200,
+        uncommon: 200,
+        rare: 300,
+        epic: 500,
+        legendary: 750,
+        icon: 750,
+        dc: 1000,
+        dark: 750,
+        slurp: 500,
+        frozen: 1000,
+        starwars: 1000,
+        marvel: 1000,
+        lava: 750
+    }
+};
+
 async function fetchitems() {
     try {
         const response = await axios.get(fortniteapi);
@@ -51,67 +183,49 @@ async function fetchitems() {
 }
 
 function pickRandomItems(items, count) {
-    const itemTypeBuckets = {
-        athenaCharacter: [],
-        athenaDance: [],
-        athenaBackpack: [],
-        athenaGlider: [],
-        athenaPickaxe: [],
-        loadingScreen: [],
-        emoji: []
+    const itemTypePriority = {
+        outfit: { min: 2, max: 3 },
+        emote: { min: 1, max: 2 },
+        backpack: { min: 1, max: 1 },
+        glider: { min: 1, max: 1 },
+        pickaxe: { min: 1, max: 2 },
+        wrap: { min: 0, max: 1 },
+        loadingscreen: { min: 0, max: 1 },
+        music: { min: 0, max: 1 }
     };
 
+    const selectedItems = new Set();
+    const itemsByType = new Map();
+
+
     items.forEach(item => {
-        const type = item.type?.value.toLowerCase();
-        switch (type) {
-            case "outfit":
-                itemTypeBuckets.athenaCharacter.push(item);
-                break;
-            case "emote":
-                itemTypeBuckets.athenaDance.push(item);
-                break;
-            case "backpack":
-                itemTypeBuckets.athenaBackpack.push(item);
-                break;
-            case "glider":
-                itemTypeBuckets.athenaGlider.push(item);
-                break;
-            case "pickaxe":
-                itemTypeBuckets.athenaPickaxe.push(item);
-                break;
-            case "loadingscreen":
-                itemTypeBuckets.loadingScreen.push(item);
-                break;
-            case "emoji":
-                itemTypeBuckets.emoji.push(item);
-                break;
-            default:
-                break;
+        const type = item.type?.value?.toLowerCase();
+        if (!itemsByType.has(type)) {
+            itemsByType.set(type, []);
         }
+        itemsByType.get(type).push(item);
     });
 
-    const selectedItems = [];
+    for (const [type, priority] of Object.entries(itemTypePriority)) {
+        const typeItems = itemsByType.get(type) || [];
+        const typeItemsToSelect = Math.min(
+            Math.floor(Math.random() * (priority.max - priority.min + 1)) + priority.min,
+            typeItems.length
+        );
 
-    function addItemsFromBucket(bucket, requiredCount) {
-        const availableItems = bucket.sort(() => 0.5 - Math.random()).slice(0, requiredCount);
-        selectedItems.push(...availableItems);
+        const shuffled = typeItems.sort(() => 0.5 - Math.random());
+        for (let i = 0; i < typeItemsToSelect && selectedItems.size < count; i++) {
+            selectedItems.add(shuffled[i]);
+        }
     }
 
-    addItemsFromBucket(itemTypeBuckets.athenaCharacter, Math.min(2, count));
-    addItemsFromBucket(itemTypeBuckets.athenaDance, Math.min(1, count));
-    addItemsFromBucket(itemTypeBuckets.athenaBackpack, Math.min(1, count));
-    addItemsFromBucket(itemTypeBuckets.athenaGlider, Math.min(1, count));
-    addItemsFromBucket(itemTypeBuckets.athenaPickaxe, Math.min(1, count));
-    addItemsFromBucket(itemTypeBuckets.loadingScreen, Math.min(1, count));
-    addItemsFromBucket(itemTypeBuckets.emoji, Math.min(1, count));
+    const remainingItems = items.filter(item => !selectedItems.has(item));
+    while (selectedItems.size < count && remainingItems.length > 0) {
+        const randomIndex = Math.floor(Math.random() * remainingItems.length);
+        selectedItems.add(remainingItems.splice(randomIndex, 1)[0]);
+    }
 
-    const remainingCount = count - selectedItems.length;
-    const remainingItems = items.filter(item => !selectedItems.includes(item));
-
-    const extraItems = remainingItems.sort(() => 0.5 - Math.random()).slice(0, remainingCount);
-    selectedItems.push(...extraItems);
-
-    return selectedItems.slice(0, count);
+    return Array.from(selectedItems);
 }
 
 function formatitemgrantsyk(item) {
@@ -138,189 +252,47 @@ function capitalizeomg(string) {
 }
 
 function notproperpricegen(item) {
-    const rarity = item.rarity?.displayValue?.toLowerCase();
+    const rarity = item.rarity?.displayValue?.toLowerCase() || 'common';
     const type = item.type?.value?.toLowerCase();
     const series = item.series?.value?.toLowerCase();
+    
+    const priceCategory = {
+        outfit: 'characters',
+        pickaxe: 'pickaxes',
+        glider: 'gliders',
+        wrap: 'wraps',
+        emote: 'dances',
+        backpack: 'backpacks',
+        contrail: 'contrails',
+        music: 'musicPacks'
+    }[type];
+
+    if (!priceCategory || !prices[priceCategory]) {
+        log.error(`Invalid price category for item type: ${type}`);
+        return 999999;
+    }
 
     if (series) {
-        switch (series) {
-            case 'gaming legends series':
-            case 'marvel series':
-            case 'star wars series':
-            case 'dc series':
-            case 'icon series':
-                switch (type) {
-                    case 'outfit':
-                        return 1500;
-                    case 'pickaxe':
-                        return 1200;
-                    case 'backpack':
-                        return 1200;
-                    case 'emote':
-                        return 500;
-                    case 'glider':
-                        return 1200;
-                    case 'wrap':
-                        return 700;
-                    case 'loadingscreen':
-                        return 500;
-                    case 'music':
-                        return 200;
-                    case 'emoji':
-                        return 200;
-                    default:
-                        return 999999;
-                }
-            case 'lava series':
-                switch (type) {
-                    case 'outfit':
-                    case 'glider':
-                    case 'backpack':
-                        return 2000;
-                    case 'pickaxe':
-                        return 1200;
-                    case 'loadingscreen':
-                        return 500;
-                    case 'music':
-                        return 200;
-                    case 'emoji':
-                        return 200;
-                    default:
-                        return 999999;
-                }
-            case 'shadow series':
-            case 'frozen series':
-            case 'slurp series':
-            case 'dark series':
-                switch (type) {
-                    case 'outfit':
-                        return 1500;
-                    case 'pickaxe':
-                        return 1200;
-                    case 'backpack':
-                        return 1200;
-                    case 'glider':
-                        return 1200;
-                    case 'wrap':
-                        return 700;
-                    case 'loadingscreen':
-                        return 500;
-                    case 'music':
-                        return 200;
-                    case 'emoji':
-                        return 200;
-                    default:
-                        return 999999;
-                }
-            default:
-                return 999999;
+        const cleanedSeries = series
+            .replace(' series', '')
+            .replace(/\s+/g, '')
+            .toLowerCase();
+
+        if (prices[priceCategory][cleanedSeries]) {
+            return prices[priceCategory][cleanedSeries];
+        }
+
+        if (cleanedSeries === 'gaminglegendsseries' && prices[priceCategory]['gaminglegends']) {
+            return prices[priceCategory]['gaminglegends'];
         }
     }
 
-    switch (type) {
-        case 'outfit':
-            switch (rarity) {
-                case 'legendary':
-                    return 2000;
-                case 'epic':
-                    return 1500;
-                case 'rare':
-                    return 1200;
-                case 'uncommon':
-                    return 800;
-                default:
-                    return 999999;
-            }
-        case 'pickaxe':
-            switch (rarity) {
-                case 'epic':
-                    return 1200;
-                case 'rare':
-                    return 800;
-                case 'uncommon':
-                    return 500;
-                default:
-                    return 999999;
-            }
-        case 'backpack':
-            switch (rarity) {
-                case 'legendary':
-                    return 2000;
-                case 'epic':
-                    return 1500;
-                case 'rare':
-                    return 1200;
-                case 'uncommon':
-                    return 200;
-                default:
-                    return 999999;
-            }
-        case 'emote':
-        case 'spray':
-        case 'emoji':
-            switch (rarity) {
-                case 'legendary':
-                    return 2000;
-                case 'epic':
-                    return 800;
-                case 'rare':
-                    return 500;
-                case 'uncommon':
-                    return 200;
-                default:
-                    return 999999;
-            }
-        case 'glider':
-            switch (rarity) {
-                case 'legendary':
-                    return 2000;
-                case 'epic':
-                    return 1200;
-                case 'rare':
-                    return 800;
-                case 'uncommon':
-                    return 500;
-                default:
-                    return 999999;
-            }
-        case 'wrap':
-            switch (rarity) {
-                case 'legendary':
-                    return 1200;
-                case 'epic':
-                    return 700;
-                case 'rare':
-                    return 500;
-                case 'uncommon':
-                    return 300;
-                default:
-                    return 999999;
-            }
-        case 'loadingscreen':
-            switch (rarity) {
-                case 'legendary':
-                case 'epic':
-                case 'rare':
-                    return 500;
-                case 'uncommon':
-                    return 200;
-                default:
-                    return 999999;
-            }
-        case 'music':
-            switch (rarity) {
-                case 'legendary':
-                case 'epic':
-                    return 500;
-                case 'rare':
-                case 'uncommon':
-                    return 200;
-                default:
-                    return 999999;
-            }
-        default:
-            return 999999;
+    if (prices[priceCategory][rarity]) {
+        return prices[priceCategory][rarity];
     }
+
+    log.error(`No price found for rarity/series: ${series || rarity} in category: ${priceCategory}`);
+    return prices[priceCategory]['rare'] || prices[priceCategory]['common'] || 999999;
 }
 
 function updatecfgomg(dailyItems, featuredItems) {
@@ -446,26 +418,50 @@ async function discordpost(itemShop) {
     }
 }
 
+function getItemsFromSet(items, setName) {
+    return items.filter(item => {
+        const itemSet = item.set?.value;
+        return itemSet && itemSet.toLowerCase() === setName.toLowerCase();
+    });
+}
 
 async function rotateshop() {
     try {
         const cosmetics = await fetchitems();
         if (cosmetics.length === 0) {
-            log.error('No cosmetics found?'); // target was here!
+            log.error('No cosmetics found');
             return;
         }
 
-        const dailyItems = pickRandomItems(cosmetics, dailyItemsCount);
-        const featuredItems = pickRandomItems(cosmetics, featuredItemsCount);
+        let dailyItems, featuredItems;
+
+        const useSetSelection = Math.random() < 0.3;
+
+        if (useSetSelection) {
+            const sets = new Set(cosmetics.map(item => item.set?.value).filter(Boolean));
+            const randomSet = Array.from(sets)[Math.floor(Math.random() * sets.size)];
+            const setItems = getItemsFromSet(cosmetics, randomSet);
+            
+            featuredItems = pickRandomItems(setItems, featuredItemsCount);
+            dailyItems = pickRandomItems(
+                cosmetics.filter(item => !featuredItems.includes(item)), 
+                dailyItemsCount
+            );
+        } else {
+            dailyItems = pickRandomItems(cosmetics, dailyItemsCount);
+            featuredItems = pickRandomItems(
+                cosmetics.filter(item => !dailyItems.includes(item)), 
+                featuredItemsCount
+            );
+        }
 
         updatecfgomg(dailyItems, featuredItems);
         await discordpost({ daily: dailyItems, featured: featuredItems });
 
         const nextRotationTime = milisecstillnextrotation();
-        log.AutoRotation(`Scheduling next rotation in: ${nextRotationTime} milliseconds`);
+        log.AutoRotation(`Next rotation in: ${nextRotationTime}ms`);
         
         setTimeout(rotateshop, nextRotationTime);
-
     } catch (error) {
         log.error('Error while rotating:', error.message || error);
     }

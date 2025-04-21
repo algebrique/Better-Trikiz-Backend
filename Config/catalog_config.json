@@ -1,35 +1,51 @@
 {
   "//": "BR Item Shop Config",
   "daily1": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaCharacter:CID_221_Athena_Commando_M_Clown"
+    ],
+    "price": 1500
   },
   "daily2": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaCharacter:CID_A_104_Athena_Commando_M_TowerSentinel"
+    ],
+    "price": 1500
   },
   "daily3": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaCharacter:CID_416_Athena_Commando_M_AssassinSuit"
+    ],
+    "price": 2000
   },
   "daily4": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaDance:EID_IceKing"
+    ],
+    "price": 500
   },
   "daily5": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaBackpack:BID_469_Wings"
+    ],
+    "price": 800
   },
   "daily6": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaGlider:Glider_ID_238_Soy_RWO5D"
+    ],
+    "price": 1000
   },
   "featured1": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaCharacter:CID_750_Athena_Commando_M_Hurricane"
+    ],
+    "price": 2000
   },
   "featured2": {
-      "itemGrants": [""],
-      "price": 0
+    "itemGrants": [
+      "AthenaCharacter:CID_454_Athena_Commando_M_GlowBro"
+    ],
+    "price": 1500
   }
 }
