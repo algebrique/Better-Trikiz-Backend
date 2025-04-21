@@ -6259,8 +6259,8 @@
       "motds": [
         {
           "entryType": "Website",
-          "image": "https://i.pinimg.com/736x/e2/7a/40/e27a4007d98d3d790c58415d3d67a971.jpg",
-          "tileImage": "https://i.pinimg.com/736x/e2/7a/40/e27a4007d98d3d790c58415d3d67a971.jpg",
+          "image": "https://i.pinimg.com/1200x/4c/cd/64/4ccd64d898fb60846104964ac3bbad53.jpg",
+          "tileImage": "https://i.pinimg.com/1200x/4c/cd/64/4ccd64d898fb60846104964ac3bbad53.jpg",
           "videoMute": false,
           "hidden": false,
           "tabTitleOverride": "Better TrikizFN",
@@ -6271,8 +6271,8 @@
           "videoLoop": false,
           "videoStreamingEnabled": false,
           "sortingPriority": 1,
-          "websiteButtonText": "Spotify",
-          "websiteURL": "https://open.spotify.com/intl-fr/artist/2MUmoZhZHWFgvOWXXKOAZj?si=a840e613dcde4e3c",
+          "websiteButtonText": "Allez Stream mes sons svp",
+          "websiteURL": "https://open.spotify.com/intl-fr/artist/4QV7WKpFBHfNTGKGMt3uMi?si=241ff86d570e4405",
           "id": "61fb3dd8-f23d-45cc-9058-058ab223ba5c",
           "videoAutoplay": false,
           "videoFullscreen": false,
@@ -6297,7 +6297,7 @@
       ],
       "messages": [
         {
-          "image": "https://i.pinimg.com/736x/e2/7a/40/e27a4007d98d3d790c58415d3d67a971.jpg",
+          "image": "https://i.pinimg.com/1200x/4c/cd/64/4ccd64d898fb60846104964ac3bbad53.jpg",
           "hidden": false, 
           "_type": "CommonUI Simple Message Base",
           "adspace": "Vive les Femboys sah",
