@@ -6265,8 +6265,8 @@
           "hidden": false,
           "tabTitleOverride": "Better TrikizFN",
           "_type": "CommonUI Simple Message MOTD",
-          "title": "SPOTIFY MUSIC",
-          "body": "L'équipe Reconquête Sur Spotify, Deezer, Youtube ect",
+          "title": "Vive les Femboys sah",
+          "body": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
           "offerAction": "ShowOfferDetails",
           "videoLoop": false,
           "videoStreamingEnabled": false,
@@ -6300,9 +6300,9 @@
           "image": "https://i.pinimg.com/736x/e2/7a/40/e27a4007d98d3d790c58415d3d67a971.jpg",
           "hidden": false, 
           "_type": "CommonUI Simple Message Base",
-          "adspace": "SPOTIFY MUSIC",
-          "title": "L'équipe Reconquête Sur Spotify, Deezer, Youtube ect",
-          "body": "ALLEZ STREAM !",
+          "adspace": "Vive les Femboys sah",
+          "title": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
+          "body": "Keone deviens femboy pour moi stp",
           "spotlight": true
         }
       ]
@@ -6357,7 +6357,7 @@
           "bHidden": false,
           "sectionId": "Featured",
           "bShowTimer": true,
-          "sectionDisplayName": "Trikiz Shop",
+          "sectionDisplayName": "Sex Shop",
           "bShowIneligibleOffers": true
         }
       ]
@@ -6373,21 +6373,21 @@
       "_type": "Battle Royale News",
       "messages": [
         {
-          "image": "https://i.pinimg.com/1200x/e2/7a/40/e27a4007d98d3d790c58415d3d67a971.jpg",
+          "image": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
           "hidden": true,
           "_type": "CommonUI Simple Message Base",
-          "adspace": "SPOTIFY MUSIC",
-          "title": "Nos musiques sont enfin dispo sur toute les plateformes de musiques",
-          "body": "L'équipe Reconquête Sur Spotify, Deezer, Youtube ect",
+          "adspace": "Vive les Femboys sah",
+          "title": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
+          "body": "Keone deviens femboy pour moi stp",
           "spotlight": false
         },
         {
-          "image": "https://i.pinimg.com/1200x/e2/7a/40/e27a4007d98d3d790c58415d3d67a971.jpg",
+          "image": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
           "hidden": false,
           "_type": "CommonUI Simple Message Base",
-          "adspace": "https://i.pinimg.com/1200x/e2/7a/40/e27a4007d98d3d790c58415d3d67a971.jpg",
+          "adspace": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
           "title": "Better TrikizFN",
-          "body": "L'équipe Reconquête Sur Spotify, Deezer, Youtube ect",
+          "body": "salut c toto qui parle la, je reve davoir un femboy dans ma vie sah",
           "spotlight": true
         }
       ]
