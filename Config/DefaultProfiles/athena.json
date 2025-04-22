@@ -3,7 +3,7 @@
   "updated": "0001-01-01T00:00:00.000Z",
   "rvn": 0,
   "wipeNumber": 1,
-  "accountId": "LawinServer",
+  "accountId": "CODE DMD",
   "profileId": "athena",
   "version": "no_version",
   "items": {
@@ -101,7 +101,7 @@
         "use_count": 0,
         "banner_icon_template": "StandardBanner1",
         "banner_color_template": "DefaultColor1",
-        "locker_name": "LawinServer",
+        "locker_name": "CODE DMD",
         "item_seen": false,
         "favorite": false
       },

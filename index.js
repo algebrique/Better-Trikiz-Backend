@@ -4,6 +4,7 @@ const fs = require("fs");
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const path = require("path");
+const readline = require('readline');
 const kv = require("./structs/kv.js");
 const config = JSON.parse(fs.readFileSync("./Config/config.json").toString());
 const WebSocket = require('ws');
@@ -85,193 +86,255 @@ checkUpdates();
 
 setInterval(checkUpdates, 60000);
 
-mongoose.set('strictQuery', true);
-
-mongoose.connect(config.mongodb.database, () => {
-    log.backend("App successfully connected to MongoDB!");
-});
-
-mongoose.connection.on("error", err => {
-    log.error("MongoDB failed to connect, please make sure you have MongoDB installed and running.");
-    throw err;
-});
-
-app.use(rateLimit({ windowMs: 0.5 * 60 * 1000, max: 55 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-fs.readdirSync("./routes").forEach(fileName => {
-    try {
-        app.use(require(`./routes/${fileName}`));
-    } catch (err) {
-        log.error(`Routes Error: Failed to load ${fileName}`)
-    }
-});
-
-fs.readdirSync("./Api").forEach(fileName => {
-    try {
-        app.use(require(`./Api/${fileName}`));
-    } catch (err) {
-        log.error(`Reload API Error: Failed to load ${fileName}`)
-    }
-});
-
-app.get("/unknown", (req, res) => {
-    log.debug('GET /unknown endpoint called');
-    res.json({ msg: "Better Trikiz Backend - Made by Burlone" });
-});
-
-let server;
-if (config.bEnableHTTPS) {
-    server = httpsServer.listen(PORT, () => {
-        log.backend(`Backend started listening on port ${PORT} (SSL Enabled)`);
-        require("./xmpp/xmpp.js");
-        if (config.discord.bUseDiscordBot === true) {
-            require("./DiscordBot");
-        }
-        if (config.bUseAutoRotate === true) {
-            require("./structs/autorotate.js");
-        }
-    }).on("error", async (err) => {
-        if (err.code === "EADDRINUSE") {
-            log.error(`Port ${PORT} is already in use!\nClosing in 3 seconds...`);
-            await functions.sleep(3000);
-            process.exit(0);
-        } else {
-            throw err;
-        }
+async function askForIpAddress() {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
     });
-} else {
-    server = app.listen(PORT, () => {
-        log.backend(`Backend started listening on port ${PORT} (SSL Disabled)`);
-        require("./xmpp/xmpp.js");
-        if (config.discord.bUseDiscordBot === true) {
-            require("./DiscordBot");
-        }
-        if (config.bUseAutoRotate === true) {
-            require("./structs/autorotate.js");
-        }
-    }).on("error", async (err) => {
-        if (err.code === "EADDRINUSE") {
-            log.error(`Port ${PORT} is already in use!\nClosing in 3 seconds...`);
-            await functions.sleep(3000);
-            process.exit(0);
-        } else {
-            throw err;
-        }
+
+    const configPath = path.join(__dirname, 'Config', 'config.json');
+    const currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const currentIP = currentConfig.matchmakerIP.split(':')[0];
+
+    return new Promise((resolve) => {
+        rl.question(`Enter your IP address (press Enter to keep current IP: ${currentIP}): `, (ip) => {
+            rl.close();
+            if (!ip.trim()) {
+                console.log(`Keeping current IP: ${currentIP}`);
+                resolve(currentIP);
+            } else {
+                resolve(ip.trim());
+            }
+        });
     });
 }
 
-if (config.bEnableAutoBackendRestart === true) {
-    AutoBackendRestart.scheduleRestart(config.bRestartTime);
-}
+async function updateConfigFiles(ipAddress) {
+    const configPath = path.join(__dirname, 'Config', 'config.json');
+    let configContent = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const currentIP = configContent.matchmakerIP.split(':')[0];
 
-if (config.bEnableCalderaService === true) {
-    const createCalderaService = require('./CalderaService/calderaservice');
-    const calderaService = createCalderaService();
-
-    let calderaHttpsOptions;
-    if (config.bEnableHTTPS) {
-        calderaHttpsOptions = {
-            cert: fs.readFileSync(config.ssl.cert),
-            ca: fs.existsSync(config.ssl.ca) ? fs.readFileSync(config.ssl.ca) : undefined,
-            key: fs.readFileSync(config.ssl.key)
-        };
-    }
-
-    if (config.bEnableHTTPS) {
-        const calderaHttpsServer = https.createServer(calderaHttpsOptions, calderaService);
-        
-        if (!config.bGameVersion) {
-            log.calderaservice("Please define a version in the config!")
-            return;
-        }
-
-        calderaHttpsServer.listen(config.bCalderaServicePort, () => {
-            log.calderaservice(`Caldera Service started listening on port ${config.bCalderaServicePort} (SSL Enabled)`);
-        }).on("error", async (err) => {
-            if (err.code === "EADDRINUSE") {
-                log.calderaservice(`Caldera Service port ${config.bCalderaServicePort} is already in use!\nClosing in 3 seconds...`);
-                await functions.sleep(3000);
-                process.exit(1);
-            } else {
-                throw err;
-            }
-        });
-    } else {
-        if (!config.bGameVersion) {
-            log.calderaservice("Please define a version in the config!")
-            return;
-        }
-
-        calderaService.listen(config.bCalderaServicePort, () => {
-            log.calderaservice(`Caldera Service started listening on port ${config.bCalderaServicePort} (SSL Disabled)`);
-        }).on("error", async (err) => {
-            if (err.code === "EADDRINUSE") {
-                log.calderaservice(`Caldera Service port ${config.bCalderaServicePort} is already in use!\nClosing in 3 seconds...`);
-                await functions.sleep(3000);
-                process.exit(1);
-            } else {
-                throw err;
-            }
-        });
-    }
-}
-
-if (config.Website.bUseWebsite === true) {
-    const websiteApp = express();
-    require('./Website/website')(websiteApp);
-
-    let httpsOptions;
-    if (config.bEnableHTTPS) {
-        httpsOptions = {
-            cert: fs.readFileSync(config.ssl.cert),
-            ca: fs.existsSync(config.ssl.ca) ? fs.readFileSync(config.ssl.ca) : undefined,
-            key: fs.readFileSync(config.ssl.key)
-        };
-    }
-
-    if (config.bEnableHTTPS) {
-        const httpsServer = https.createServer(httpsOptions, websiteApp);
-        httpsServer.listen(config.Website.websiteport, () => {
-            log.website(`Website started listening on port ${config.Website.websiteport} (SSL Enabled)`);
-        }).on("error", async (err) => {
-            if (err.code === "EADDRINUSE") {
-                log.error(`Website port ${config.Website.websiteport} is already in use!\nClosing in 3 seconds...`);
-                await functions.sleep(3000);
-                process.exit(1);
-            } else {
-                throw err;
-            }
-        });
-    } else {
-        websiteApp.listen(config.Website.websiteport, () => {
-            log.website(`Website started listening on port ${config.Website.websiteport} (SSL Disabled)`);
-        }).on("error", async (err) => {
-            if (err.code === "EADDRINUSE") {
-                log.error(`Website port ${config.Website.websiteport} is already in use!\nClosing in 3 seconds...`);
-                await functions.sleep(3000);
-                process.exit(1);
-            } else {
-                throw err;
-            }
-        });
-    }
-}
-
-app.use((req, res, next) => {
-    const url = req.originalUrl;
-    log.debug(`Missing endpoint: ${req.method} ${url} request port ${req.socket.localPort}`);
-    if (req.url.includes("..")) {
-        res.redirect("https://youtu.be/dQw4w9WgXcQ");
+    if (currentIP === ipAddress) {
+        console.log('\nUsing existing IP configuration');
         return;
     }
-    error.createError(
-        "errors.com.epicgames.common.not_found", 
-        "Sorry the resource you were trying to find could not be found", 
-        undefined, 1004, undefined, 404, res
+
+    const enginePath = path.join(__dirname, 'CloudStorage', 'DefaultEngine.ini');
+    let engineContent = fs.readFileSync(enginePath, 'utf8');
+    
+    engineContent = engineContent.replace(
+        /ServerAddr="ws:\/\/[^"]+"/g, 
+        `ServerAddr="ws://${ipAddress}"`
     );
-});
+    
+    fs.writeFileSync(enginePath, engineContent, 'utf8');
+
+    configContent.matchmakerIP = `${ipAddress}:80`;
+    configContent.gameServerIP = [`${ipAddress}:7777:playlist_defaultsolo`];
+    
+    fs.writeFileSync(configPath, JSON.stringify(configContent, null, 2), 'utf8');
+
+    console.log('\nConfiguration files updated successfully!');
+}
+
+async function startServer() {
+    try {
+        const ipAddress = await askForIpAddress();
+        await updateConfigFiles(ipAddress);
+        
+        mongoose.set('strictQuery', true);
+
+        mongoose.connect(config.mongodb.database, () => {
+            log.backend("App successfully connected to MongoDB!");
+        });
+
+        mongoose.connection.on("error", err => {
+            log.error("MongoDB failed to connect, please make sure you have MongoDB installed and running.");
+            throw err;
+        });
+
+        app.use(rateLimit({ windowMs: 0.5 * 60 * 1000, max: 55 }));
+        app.use(express.json());
+        app.use(express.urlencoded({ extended: true }));
+
+        fs.readdirSync("./routes").forEach(fileName => {
+            try {
+                app.use(require(`./routes/${fileName}`));
+            } catch (err) {
+                log.error(`Routes Error: Failed to load ${fileName}`)
+            }
+        });
+
+        fs.readdirSync("./Api").forEach(fileName => {
+            try {
+                app.use(require(`./Api/${fileName}`));
+            } catch (err) {
+                log.error(`Reload API Error: Failed to load ${fileName}`)
+            }
+        });
+
+        app.get("/unknown", (req, res) => {
+            log.debug('GET /unknown endpoint called');
+            res.json({ msg: "Better Trikiz Backend - Made by Burlone" });
+        });
+
+        let server;
+        if (config.bEnableHTTPS) {
+            server = httpsServer.listen(PORT, () => {
+                log.backend(`Backend started listening on port ${PORT} (SSL Enabled)`);
+                require("./xmpp/xmpp.js");
+                if (config.discord.bUseDiscordBot === true) {
+                    require("./DiscordBot");
+                }
+                if (config.bUseAutoRotate === true) {
+                    require("./structs/autorotate.js");
+                }
+            }).on("error", async (err) => {
+                if (err.code === "EADDRINUSE") {
+                    log.error(`Port ${PORT} is already in use!\nClosing in 3 seconds...`);
+                    await functions.sleep(3000);
+                    process.exit(0);
+                } else {
+                    throw err;
+                }
+            });
+        } else {
+            server = app.listen(PORT, () => {
+                log.backend(`Backend started listening on port ${PORT} (SSL Disabled)`);
+                require("./xmpp/xmpp.js");
+                if (config.discord.bUseDiscordBot === true) {
+                    require("./DiscordBot");
+                }
+                if (config.bUseAutoRotate === true) {
+                    require("./structs/autorotate.js");
+                }
+            }).on("error", async (err) => {
+                if (err.code === "EADDRINUSE") {
+                    log.error(`Port ${PORT} is already in use!\nClosing in 3 seconds...`);
+                    await functions.sleep(3000);
+                    process.exit(0);
+                } else {
+                    throw err;
+                }
+            });
+        }
+
+        if (config.bEnableAutoBackendRestart === true) {
+            AutoBackendRestart.scheduleRestart(config.bRestartTime);
+        }
+
+        if (config.bEnableCalderaService === true) {
+            const createCalderaService = require('./CalderaService/calderaservice');
+            const calderaService = createCalderaService();
+
+            let calderaHttpsOptions;
+            if (config.bEnableHTTPS) {
+                calderaHttpsOptions = {
+                    cert: fs.readFileSync(config.ssl.cert),
+                    ca: fs.existsSync(config.ssl.ca) ? fs.readFileSync(config.ssl.ca) : undefined,
+                    key: fs.readFileSync(config.ssl.key)
+                };
+            }
+
+            if (config.bEnableHTTPS) {
+                const calderaHttpsServer = https.createServer(calderaHttpsOptions, calderaService);
+                
+                if (!config.bGameVersion) {
+                    log.calderaservice("Please define a version in the config!")
+                    return;
+                }
+
+                calderaHttpsServer.listen(config.bCalderaServicePort, () => {
+                    log.calderaservice(`Caldera Service started listening on port ${config.bCalderaServicePort} (SSL Enabled)`);
+                }).on("error", async (err) => {
+                    if (err.code === "EADDRINUSE") {
+                        log.calderaservice(`Caldera Service port ${config.bCalderaServicePort} is already in use!\nClosing in 3 seconds...`);
+                        await functions.sleep(3000);
+                        process.exit(1);
+                    } else {
+                        throw err;
+                    }
+                });
+            } else {
+                if (!config.bGameVersion) {
+                    log.calderaservice("Please define a version in the config!")
+                    return;
+                }
+
+                calderaService.listen(config.bCalderaServicePort, () => {
+                    log.calderaservice(`Caldera Service started listening on port ${config.bCalderaServicePort} (SSL Disabled)`);
+                }).on("error", async (err) => {
+                    if (err.code === "EADDRINUSE") {
+                        log.calderaservice(`Caldera Service port ${config.bCalderaServicePort} is already in use!\nClosing in 3 seconds...`);
+                        await functions.sleep(3000);
+                        process.exit(1);
+                    } else {
+                        throw err;
+                    }
+                });
+            }
+        }
+
+        if (config.Website.bUseWebsite === true) {
+            const websiteApp = express();
+            require('./Website/website')(websiteApp);
+
+            let httpsOptions;
+            if (config.bEnableHTTPS) {
+                httpsOptions = {
+                    cert: fs.readFileSync(config.ssl.cert),
+                    ca: fs.existsSync(config.ssl.ca) ? fs.readFileSync(config.ssl.ca) : undefined,
+                    key: fs.readFileSync(config.ssl.key)
+                };
+            }
+
+            if (config.bEnableHTTPS) {
+                const httpsServer = https.createServer(httpsOptions, websiteApp);
+                httpsServer.listen(config.Website.websiteport, () => {
+                    log.website(`Website started listening on port ${config.Website.websiteport} (SSL Enabled)`);
+                }).on("error", async (err) => {
+                    if (err.code === "EADDRINUSE") {
+                        log.error(`Website port ${config.Website.websiteport} is already in use!\nClosing in 3 seconds...`);
+                        await functions.sleep(3000);
+                        process.exit(1);
+                    } else {
+                        throw err;
+                    }
+                });
+            } else {
+                websiteApp.listen(config.Website.websiteport, () => {
+                    log.website(`Website started listening on port ${config.Website.websiteport} (SSL Disabled)`);
+                }).on("error", async (err) => {
+                    if (err.code === "EADDRINUSE") {
+                        log.error(`Website port ${config.Website.websiteport} is already in use!\nClosing in 3 seconds...`);
+                        await functions.sleep(3000);
+                        process.exit(1);
+                    } else {
+                        throw err;
+                    }
+                });
+            }
+        }
+
+        app.use((req, res, next) => {
+            const url = req.originalUrl;
+            log.debug(`Missing endpoint: ${req.method} ${url} request port ${req.socket.localPort}`);
+            if (req.url.includes("..")) {
+                res.redirect("https://youtu.be/dQw4w9WgXcQ");
+                return;
+            }
+            error.createError(
+                "errors.com.epicgames.common.not_found", 
+                "Sorry the resource you were trying to find could not be found", 
+                undefined, 1004, undefined, 404, res
+            );
+        });
+
+    } catch (error) {
+        console.error('Error during server startup:', error);
+        process.exit(1);
+    }
+}
 
 function DateAddHours(pdate, number) {
     let date = pdate;
@@ -279,5 +342,7 @@ function DateAddHours(pdate, number) {
 
     return date;
 }
+
+startServer();
 
 module.exports = app;
