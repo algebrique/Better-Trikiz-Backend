@@ -14,11 +14,11 @@
                 "disabled": false,
                 "version": 95,
                 "moderationStatus": "Unmoderated",
-                "accountId": "epic",
-                "creatorName": "Epic",
+                "accountId": "poly",
+                "creatorName": "Poly",
                 "descriptionTags": [],
                 "metadata": {
-                  "image_url": "https://cdn2.unrealengine.com/solo-1920x1080-1920x1080-bc0a5455ce20.jpg",
+                  "image_url": "https://i.pinimg.com/1200x/a8/c4/7d/a8c47dfd6fe1485522dda00254b8d0dd.jpg",
                   "matchmaking": {
                     "override_playlist": "playlist_defaultsolo"
                   }
@@ -37,11 +37,11 @@
                 "disabled": false,
                 "version": 95,
                 "moderationStatus": "Unmoderated",
-                "accountId": "epic",
-                "creatorName": "Epic",
+                "accountId": "poly",
+                "creatorName": "Poly",
                 "descriptionTags": [],
                 "metadata": {
-                  "image_url": "https://cdn2.unrealengine.com/duos-1920x1080-1920x1080-5a411fe07b21.jpg",
+                  "image_url": "https://i.pinimg.com/1200x/5e/a2/2c/5ea22cd118427126e6043266ad823d37.jpg",
                   "matchmaking": {
                     "override_playlist": "playlist_defaultduo"
                   }
