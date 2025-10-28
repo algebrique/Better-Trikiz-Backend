@@ -35,9 +35,9 @@
     "redirectUri": "http://127.0.0.1:${websiteport}/oauth2/callback",
     "websiteport": 100
   },
-  "matchmakerIP": "26.134.126.1:80",
+  "matchmakerIP": "IP:Port",
   "gameServerIP": [
-    "26.134.126.1:7777:playlist_defaultsolo"
+    "IP:Port:playlist_defaultsolo"
   ],
   "bEnableBattlepass": false,
   "bBattlePassSeason": 2,

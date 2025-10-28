@@ -1,5 +1,6 @@
 # Better Trikiz Backend
 
-![Imgur](https://i.pinimg.com/1200x/b6/2c/8d/b62c8d698c114731836cc4431b1ad0af.jpg)
+Fork of Reload Backend By Burlone (based on lawinserverV2)
 
-Created by [2flp]
+Reload Backend : https://github.com/Project-Reload/Reload-Backend
+LawinserverV2 : https://github.com/Lawin0129/LawinServerV2
