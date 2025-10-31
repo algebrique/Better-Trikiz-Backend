@@ -6,7 +6,7 @@ const log = require("../../../structs/log.js");
 module.exports = {
     commandInfo: {
         name: "claimvbucks",
-        description: "Claim your daily 250 V-Bucks"
+        description: "Claim your daily 500 V-Bucks"
     },
     async execute(interaction) {
         try {
@@ -14,75 +14,78 @@ module.exports = {
 
             const user = await Users.findOne({ discordId: interaction.user.id });
             if (!user) {
-                return interaction.followUp({ content: "You are not registered", ephemeral: true });
+                return interaction.editReply({ content: "You are not registered.", ephemeral: true });
             }
 
-            const userProfile = await Profiles.findOne({ accountId: user?.accountId });
+            const profile = await Profiles.findOne({ accountId: user.accountId }).lean();
+            if (!profile) {
+                return interaction.editReply({ content: "Profile not found. Contact an administrator.", ephemeral: true });
+            }
 
-            const lastClaimed = userProfile?.profiles?.lastVbucksClaim;
-            if (lastClaimed && (Date.now() - new Date(lastClaimed).getTime() < 24 * 60 * 60 * 1000)) {
-                const timeLeft = 24 - Math.floor((Date.now() - new Date(lastClaimed).getTime()) / (1000 * 60 * 60));
-                return interaction.followUp({
-                    content: `You have already claimed your daily **V-Bucks.** Please wait the remainder: **${timeLeft} hours.**`,
+            const lastClaimed = profile?.profiles?.lastVbucksClaim;
+            const DAY_MS = 24 * 60 * 60 * 1000;
+            if (lastClaimed && (Date.now() - new Date(lastClaimed).getTime() < DAY_MS)) {
+                const remainingMs = DAY_MS - (Date.now() - new Date(lastClaimed).getTime());
+                const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+                const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                return interaction.editReply({
+                    content: `You have already claimed your daily V-Bucks. Please wait ${hours}h ${minutes}m.`,
                     ephemeral: true
                 });
             }
 
-            const filter = { accountId: user?.accountId };
-            const updateCommonCore = { $inc: { 'profiles.common_core.items.Currency:MtxPurchased.quantity': 250 } }; //250 is vbucks for day but u can change it
-            const updateProfile0 = { $inc: { 'profiles.profile0.items.Currency:MtxPurchased.quantity': 250 } }; //250 is vbucks for day but u can change it
+            const VBUCKS_AMOUNT = 500;
 
-            const userUpdatedProfile = await Profiles.findOneAndUpdate(
-                filter,
+            const updated = await Profiles.findOneAndUpdate(
+                { accountId: user.accountId },
                 {
-                    ...updateCommonCore,
+                    $inc: {
+                        'profiles.common_core.items.Currency:MtxPurchased.quantity': VBUCKS_AMOUNT,
+                        'profiles.profile0.items.Currency:MtxPurchased.quantity': VBUCKS_AMOUNT,
+                        'profiles.common_core.rvn': 1,
+                        'profiles.common_core.commandRevision': 1
+                    },
                     $set: { 'profiles.lastVbucksClaim': Date.now() }
                 },
                 { new: true }
-            );
+            ).lean();
 
-            await Profiles.updateOne(filter, updateProfile0);
+            if (!updated) {
+                return interaction.editReply({ content: "Failed to update profile. Try again later.", ephemeral: true });
+            }
 
-            const common_core = userUpdatedProfile.profiles["common_core"];
-            const profile0 = userUpdatedProfile.profiles["profile0"];
+            const commonCore = updated.profiles?.common_core;
+            const profile0 = updated.profiles?.profile0;
 
-            const newQuantityCommonCore = common_core.items['Currency:MtxPurchased'].quantity;
-            const newQuantityProfile0 = profile0.items['Currency:MtxPurchased'].quantity;
-
-            common_core.rvn += 1;
-            common_core.commandRevision += 1;
-
-            await Profiles.updateOne(filter, {
-                $set: {
-                    'profiles.common_core': common_core,
-                    'profiles.profile0.items.Currency:MtxPurchased.quantity': newQuantityProfile0
-                }
-            });
+            const newCommon = commonCore?.items?.['Currency:MtxPurchased']?.quantity ?? 0;
+            const newProfile0 = profile0?.items?.['Currency:MtxPurchased']?.quantity ?? 0;
+            const rvn = commonCore?.rvn ?? 0;
+            const cmdRev = commonCore?.commandRevision ?? 0;
 
             const embed = new MessageEmbed()
-                .setTitle("Daily V-Bucks Claimed!")
-                .setDescription(`You have claimed your daily **250 V-Bucks**!`)
+                .setTitle("Daily V‑Bucks Claimed")
+                .setDescription(`You claimed **${VBUCKS_AMOUNT.toLocaleString()} V‑Bucks** for today.`)
+                .setColor("#1EFF00")
                 .setThumbnail("https://i.imgur.com/yLbihQa.png")
-                .setColor("#1eff00")
-                .setFooter({
-                    text: "Reload Backend",
-                    iconURL: "https://i.imgur.com/2RImwlb.png"
-                });
+                .addFields(
+                    { name: "👤 Account", value: `\`${user.accountId || "Unknown"}\``, inline: true }
+                )
+                .setFooter({ text: "Better Trikiz Backend", iconURL: "https://i.pinimg.com/1200x/3e/4c/d1/3e4cd1c39e0151910a5d5b956911b3c0.jpg" })
+                .setTimestamp();
 
-            await interaction.followUp({
-                embeds: [embed],
-                ephemeral: true
-            });
+            await interaction.editReply({ embeds: [embed], ephemeral: true });
 
             return {
-                profileRevision: common_core.rvn,
-                profileCommandRevision: common_core.commandRevision,
-                newQuantityCommonCore,
-                newQuantityProfile0
+                profileRevision: rvn,
+                profileCommandRevision: cmdRev,
+                newQuantityCommonCore: newCommon,
+                newQuantityProfile0: newProfile0
             };
-
         } catch (error) {
             log.error(error);
+            try {
+                await interaction.editReply({ content: "An error occurred while claiming V‑Bucks. Please try again later.", ephemeral: true });
+            } catch (e) { /* ignore */ }
         }
     }
 };

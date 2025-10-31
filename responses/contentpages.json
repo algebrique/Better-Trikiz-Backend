@@ -213,8 +213,8 @@
           "hidden": false,
           "_type": "CommonUI Simple Message Base",
           "adspace": "Serveur Discord",
-          "title": "Better TrikizFN",
-          "body": "https://discord.gg/KR7vYccUKG",
+          "title": "JNR OG",
+          "body": "https://discord.gg/bjpUsGzxYB",
           "spotlight": false
         },
         {
@@ -1235,8 +1235,8 @@
         {
           "hidden": false,
           "_type": "CommonUI Simple Message Base",
-          "title": "Better TrikizFN",
-          "body": "discord : @2flp",
+          "title": "JNR OG",
+          "body": "discord : @algebrique",
           "spotlight": true
         }
       ]
@@ -1260,8 +1260,8 @@
           "gamemodes": [],
           "hidden": true,
           "_type": "CommonUI Emergency Notice Base",
-          "title": "Better TrikizFN",
-          "body": "discord : @2flp"
+          "title": "JNR OG",
+          "body": "discord : @algebrique"
         }
       ]
     },
@@ -6263,16 +6263,16 @@
           "tileImage": "https://i.pinimg.com/1200x/5d/74/14/5d741452ad21598735b2775e53d0549a.jpg",
           "videoMute": false,
           "hidden": false,
-          "tabTitleOverride": "Better TrikizFN",
+          "tabTitleOverride": "JNR OG",
           "_type": "CommonUI Simple Message MOTD",
-          "title": "Create by @2flp",
-          "body": "gab gab gab",
+          "title": "Create by @algebrique",
+          "body": "pro skid backend",
           "offerAction": "ShowOfferDetails",
           "videoLoop": false,
           "videoStreamingEnabled": false,
           "sortingPriority": 1,
-          "websiteButtonText": "Allez Stream mes sons svp",
-          "websiteURL": "https://open.spotify.com/intl-fr/artist/4QV7WKpFBHfNTGKGMt3uMi?si=241ff86d570e4405",
+          "websiteButtonText": "trikiz",
+          "websiteURL": "https://discord.gg/bjpUsGzxYB",
           "id": "61fb3dd8-f23d-45cc-9058-058ab223ba5c",
           "videoAutoplay": false,
           "videoFullscreen": false,
@@ -6300,9 +6300,9 @@
           "image": "https://i.pinimg.com/1200x/5d/74/14/5d741452ad21598735b2775e53d0549a.jpg",
           "hidden": false, 
           "_type": "CommonUI Simple Message Base",
-          "adspace": "Create by @2flp",
-          "title": "gab gab gab",
-          "body": "Keone deviens femboy pour moi stp",
+          "adspace": "Create by @algebrique",
+          "title": "trikiiiiiiiiiz",
+          "body": "NIKER VO RAZ",
           "spotlight": true
         }
       ]
@@ -6376,9 +6376,9 @@
           "image": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
           "hidden": true,
           "_type": "CommonUI Simple Message Base",
-          "adspace": "Create by @2flp",
-          "title": "gab gab gab",
-          "body": "Keone deviens femboy pour moi stp",
+          "adspace": "Create by @algebrique",
+          "title": "trikiiiiiiiiiz",
+          "body": "NIKER VO RAZ",
           "spotlight": false
         },
         {
@@ -6386,8 +6386,8 @@
           "hidden": false,
           "_type": "CommonUI Simple Message Base",
           "adspace": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
-          "title": "Better TrikizFN",
-          "body": "gab gab gab",
+          "title": "JNR OG",
+          "body": "trikiiiiiiiiiz",
           "spotlight": true
         }
       ]

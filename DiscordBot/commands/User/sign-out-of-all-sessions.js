@@ -1,3 +1,4 @@
+const { MessageEmbed } = require("discord.js");
 const User = require("../../../model/user.js");
 const functions = require("../../../structs/functions.js");
 
@@ -8,27 +9,75 @@ module.exports = {
     },
     execute: async (interaction) => {
         await interaction.deferReply({ ephemeral: true });
-        
-        const targetUser = await User.findOne({ discordId: interaction.user.id }).lean();
-        if (!targetUser) return interaction.editReply({ content: "You do not have a registered account!", ephemeral: true });
 
-        let refreshToken = global.refreshTokens.findIndex(i => i.accountId == targetUser.accountId);
-        if (refreshToken != -1) global.refreshTokens.splice(refreshToken, 1);
+        try {
+            const targetUser = await User.findOne({ discordId: interaction.user.id }).lean();
+            if (!targetUser) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("No Account Found")
+                    .setDescription("You do not have a registered account.")
+                    .setTimestamp();
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
 
-        let accessToken = global.accessTokens.findIndex(i => i.accountId == targetUser.accountId);
-        if (accessToken != -1) {
-            global.accessTokens.splice(accessToken, 1);
+            let refreshRemoved = 0;
+            if (Array.isArray(global.refreshTokens)) {
+                const before = global.refreshTokens.length;
+                global.refreshTokens = global.refreshTokens.filter(i => i.accountId != targetUser.accountId);
+                refreshRemoved = before - global.refreshTokens.length;
+            }
 
-            let xmppClient = global.Clients.find(client => client.accountId == targetUser.accountId);
-            if (xmppClient) xmppClient.client.close();
+            let accessRemoved = 0;
+            if (Array.isArray(global.accessTokens)) {
+                const before = global.accessTokens.length;
+                global.accessTokens = global.accessTokens.filter(i => i.accountId != targetUser.accountId);
+                accessRemoved = before - global.accessTokens.length;
+            }
+
+            let xmppClosed = false;
+            if (Array.isArray(global.Clients)) {
+                const clientIndex = global.Clients.findIndex(c => c.accountId == targetUser.accountId);
+                if (clientIndex !== -1) {
+                    const xmppClient = global.Clients[clientIndex];
+                    try {
+                        if (xmppClient && xmppClient.client && typeof xmppClient.client.close === "function") {
+                            xmppClient.client.close();
+                        }
+                    } catch (e) { }
+                    global.Clients.splice(clientIndex, 1);
+                    xmppClosed = true;
+                }
+            }
+
+            if ((refreshRemoved > 0) || (accessRemoved > 0) || xmppClosed) {
+                try { if (typeof functions.UpdateTokens === "function") await functions.UpdateTokens(); } catch (e) { }
+
+                const embed = new MessageEmbed()
+                    .setColor("#00C2A8")
+                    .setTitle("Signed Out")
+                    .setDescription("All active sessions linked to your account have been signed out.")
+                    .setFooter({ text: "Better Trikiz Backend" })
+                    .setTimestamp();
+
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            } else {
+                const embed = new MessageEmbed()
+                    .setColor("#FFD166")
+                    .setTitle("No Active Sessions")
+                    .setDescription("No active sessions were found for your account.")
+                    .setTimestamp();
+
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
+        } catch (err) {
+            try { if (typeof console !== "undefined") console.error(err); } catch (e) { }
+            const embed = new MessageEmbed()
+                .setColor("#FF5555")
+                .setTitle("Error")
+                .setDescription("An error occurred while signing out of sessions. Please try again later.")
+                .setTimestamp();
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
-
-        if (accessToken != -1 || refreshToken != -1) {
-            functions.UpdateTokens();
-
-            return interaction.editReply({ content: `Successfully signed out of all sessions!`, ephemeral: true });
-        }
-        
-        interaction.editReply({ content: `You have no current active sessions.`, ephemeral: true });
     }
-}
+};

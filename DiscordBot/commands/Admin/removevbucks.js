@@ -1,22 +1,23 @@
+const { MessageEmbed } = require('discord.js');
 const Users = require('../../../model/user');
 const Profiles = require('../../../model/profiles');
 const config = require('../../../Config/config.json');
-const { MessageEmbed } = require('discord.js');
+const log = require('../../../structs/log.js');
 
 module.exports = {
     commandInfo: {
         name: "removevbucks",
-        description: "Lets you change a user's amount of V-Bucks",
+        description: "Remove V-Bucks from a user",
         options: [
             {
                 name: "user",
-                description: "The user you want to change the V-Bucks of",
+                description: "The user to remove V-Bucks from",
                 required: true,
                 type: 6
             },
             {
                 name: "vbucks",
-                description: "The amount of V-Bucks you want to remove (Can be a negative number to add V-Bucks)",
+                description: "The amount of V-Bucks to remove",
                 required: true,
                 type: 4
             }
@@ -25,75 +26,121 @@ module.exports = {
     execute: async (interaction) => {
         await interaction.deferReply({ ephemeral: true });
 
-        if (!config.moderators.includes(interaction.user.id)) {
-            return interaction.editReply({ content: "You do not have moderator permissions.", ephemeral: true });
+        if (!Array.isArray(config.moderators) || !config.moderators.includes(interaction.user.id)) {
+            const embed = new MessageEmbed()
+                .setColor("#FF5555")
+                .setTitle("Permission Denied")
+                .setDescription("You do not have moderator permissions.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
 
         const selectedUser = interaction.options.getUser('user');
-        const selectedUserId = selectedUser?.id;
-        const user = await Users.findOne({ discordId: selectedUserId });
+        const vbucks = interaction.options.getInteger('vbucks');
 
-        if (!user) {
-            return interaction.editReply({ content: "That user does not own an account", ephemeral: true });
+        if (!selectedUser) {
+            const embed = new MessageEmbed()
+                .setColor("#FFAA33")
+                .setTitle("Invalid Input")
+                .setDescription("Please provide a valid Discord user.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
 
-        const vbucks = parseInt(interaction.options.getInteger('vbucks'));
-        if (isNaN(vbucks) || vbucks === 0) {
-            return interaction.editReply({ content: "Invalid V-Bucks amount specified.", ephemeral: true });
+        if (typeof vbucks !== "number" || !Number.isInteger(vbucks) || vbucks <= 0) {
+            const embed = new MessageEmbed()
+                .setColor("#FFAA33")
+                .setTitle("Invalid Amount")
+                .setDescription("Please provide a valid positive integer amount of V‑Bucks to remove.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
 
-        const filter = { accountId: user.accountId };
-        const updateCommonCore = { $inc: { 'profiles.common_core.items.Currency:MtxPurchased.quantity': -vbucks } };
-        const updateProfile0 = { $inc: { 'profiles.profile0.items.Currency:MtxPurchased.quantity': -vbucks } };
-
-        const updatedProfile = await Profiles.findOneAndUpdate(filter, updateCommonCore, { new: true });
-        if (!updatedProfile) {
-            return interaction.editReply({ content: "That user does not own an account", ephemeral: true });
-        }
-
-        await Profiles.updateOne(filter, updateProfile0);
-
-        const profile0 = updatedProfile.profiles["profile0"];
-        const common_core = updatedProfile.profiles["common_core"];
-
-        const newQuantityCommonCore = common_core.items['Currency:MtxPurchased'].quantity;
-        const newQuantityProfile0 = profile0.items['Currency:MtxPurchased'].quantity;
-
-        common_core.rvn += 1;
-        common_core.commandRevision += 1;
-
-        await Profiles.updateOne(filter, {
-            $set: {
-                'profiles.common_core': common_core,
-                'profiles.profile0.items.Currency:MtxPurchased.quantity': newQuantityProfile0
+        try {
+            const user = await Users.findOne({ discordId: selectedUser.id }).lean();
+            if (!user) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Account Not Found")
+                    .setDescription(`**${selectedUser.tag}** does not own an account.`);
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
             }
-        });
 
-        if (newQuantityCommonCore < 0 || newQuantityCommonCore >= 1000000) {
-            return interaction.editReply({
-                content: "V-Bucks amount is out of valid range after the update.",
-                ephemeral: true
-            });
+            const profile = await Profiles.findOne({ accountId: user.accountId }).lean();
+            if (!profile || !profile.profiles) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Profile Not Found")
+                    .setDescription("That user does not have a profile.");
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
+
+            const commonCoreQty = Number(profile.profiles?.common_core?.items?.["Currency:MtxPurchased"]?.quantity || 0);
+            const profile0Qty = Number(profile.profiles?.profile0?.items?.["Currency:MtxPurchased"]?.quantity || 0);
+
+            const newCommon = commonCoreQty - vbucks;
+            const newProfile0 = profile0Qty - vbucks;
+
+            if (newCommon < 0 || newProfile0 < 0) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Insufficient Balance")
+                    .setDescription(`**${selectedUser.tag}** does not have enough V‑Bucks. Current balance: **${commonCoreQty.toLocaleString()} V‑Bucks**.`);
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
+
+            const MAX_BALANCE = 1000000;
+            if (newCommon >= MAX_BALANCE || newProfile0 >= MAX_BALANCE) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Invalid Operation")
+                    .setDescription("Resulting V‑Bucks balance would exceed allowed maximum.");
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
+
+            const update = {
+                $inc: {
+                    'profiles.common_core.items.Currency:MtxPurchased.quantity': -vbucks,
+                    'profiles.profile0.items.Currency:MtxPurchased.quantity': -vbucks,
+                    'profiles.common_core.rvn': 1,
+                    'profiles.common_core.commandRevision': 1
+                }
+            };
+
+            await Profiles.updateOne({ accountId: user.accountId }, update);
+
+            const updatedProfile = await Profiles.findOne({ accountId: user.accountId }).lean();
+            const updatedCommon = Number(updatedProfile.profiles?.common_core?.items?.["Currency:MtxPurchased"]?.quantity || 0);
+
+            const embed = new MessageEmbed()
+                .setTitle("V‑Bucks Removed")
+                .setDescription(`Removed **${vbucks.toLocaleString()} V‑Bucks** from **${selectedUser.tag}**`)
+                .setColor("#FF5555")
+                .addFields(
+                    { name: "Amount Removed", value: `${vbucks.toLocaleString()} V‑Bucks`, inline: true },
+                    { name: "New Balance", value: `${updatedCommon.toLocaleString()} V‑Bucks`, inline: true }
+                )
+                .setFooter({ text: "Better Trikiz Backend", iconURL: "https://i.imgur.com/2RImwlb.png" })
+                .setTimestamp();
+
+            log.backend(`Removed ${vbucks} V-Bucks from ${user.username} by ${interaction.user.tag}`);
+
+            await interaction.editReply({ embeds: [embed], ephemeral: true });
+
+            return {
+                profileRevision: updatedProfile.profiles.common_core.rvn,
+                profileCommandRevision: updatedProfile.profiles.common_core.commandRevision,
+                newQuantityCommonCore: updatedCommon,
+                newQuantityProfile0: Number(updatedProfile.profiles?.profile0?.items?.["Currency:MtxPurchased"]?.quantity || 0)
+            };
+        } catch (err) {
+            log.error("Error in removevbucks command:", err);
+            const embed = new MessageEmbed()
+                .setTitle("Error")
+                .setDescription("An error occurred while removing V‑Bucks. Please try again later.")
+                .setColor("#FF5555")
+                .setFooter({ text: "Better Trikiz Backend" })
+                .setTimestamp();
+            try {
+                await interaction.editReply({ embeds: [embed], ephemeral: true });
+            } catch (e) {}
         }
-
-        const embed = new MessageEmbed()
-            .setTitle("V-Bucks Updated")
-            .setDescription(`Successfully removed **${vbucks}** V-Bucks from <@${selectedUserId}>`)
-            .setThumbnail("https://i.imgur.com/yLbihQa.png")
-            .setColor("GREEN")
-            .setFooter({
-                text: "Reload Backend",
-                iconURL: "https://i.imgur.com/2RImwlb.png"
-            })
-            .setTimestamp();
-
-        await interaction.editReply({ embeds: [embed], ephemeral: true });
-
-        return {
-            profileRevision: common_core.rvn,
-            profileCommandRevision: common_core.commandRevision,
-            newQuantityCommonCore,
-            newQuantityProfile0
-        };
     }
 };

@@ -275,6 +275,9 @@ async function startServer() {
             }
         }
 
+
+        app.use(require("./routes/images.js"));
+
         if (config.Website.bUseWebsite === true) {
             const websiteApp = express();
             require('./Website/website')(websiteApp);

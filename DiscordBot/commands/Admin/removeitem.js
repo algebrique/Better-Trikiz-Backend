@@ -6,112 +6,168 @@ const path = require('path');
 const destr = require('destr');
 const log = require("../../../structs/log.js");
 const config = require('../../../Config/config.json');
+const axios = require('axios');
 
 module.exports = {
     commandInfo: {
         name: "removeitem",
-        description: "Allows you to remove a cosmetic (skin, pickaxe, glider, etc.) from a user",
+        description: "Remove a cosmetic from a user",
         options: [
             {
                 name: "user",
-                description: "The user you want to remove the cosmetic from",
+                description: "The user to remove the cosmetic from",
                 required: true,
                 type: 6
             },
             {
                 name: "cosmeticname",
-                description: "The name of the cosmetic you want to remove",
+                description: "The name of the cosmetic to remove",
                 required: true,
                 type: 3
             }
         ]
     },
     execute: async (interaction) => {
-
-        if (!config.moderators.includes(interaction.user.id)) {
-            return interaction.reply({ content: "You do not have moderator permissions.", ephemeral: true });
-        }
-
         await interaction.deferReply({ ephemeral: true });
 
+        if (!Array.isArray(config.moderators) || !config.moderators.includes(interaction.user.id)) {
+            const embed = new MessageEmbed()
+                .setColor("#FF5555")
+                .setTitle("Permission Denied")
+                .setDescription("You do not have moderator permissions.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
+        }
+
         const selectedUser = interaction.options.getUser('user');
-        const selectedUserId = selectedUser?.id;
+        const cosmeticname = (interaction.options.getString('cosmeticname') || "").trim();
 
-        const user = await Users.findOne({ discordId: selectedUserId });
-        if (!user) {
-            return interaction.editReply({ content: "That user does not own an account" });
+        if (!selectedUser) {
+            const embed = new MessageEmbed()
+                .setColor("#FFAA33")
+                .setTitle("Invalid Input")
+                .setDescription("Please provide a valid Discord user.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
 
-        const profile = await Profiles.findOne({ accountId: user.accountId });
-        if (!profile) {
-            return interaction.editReply({ content: "That user does not own an account" });
+        if (!cosmeticname) {
+            const embed = new MessageEmbed()
+                .setColor("#FFAA33")
+                .setTitle("Invalid Input")
+                .setDescription("Please provide a cosmetic name.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
-
-        const cosmeticname = interaction.options.getString('cosmeticname');
 
         try {
-            const response = await fetch(`https://fortnite-api.com/v2/cosmetics/br/search?name=${cosmeticname}`);
-            const json = await response.json();
-            const cosmeticFromAPI = json.data;
+            const user = await Users.findOne({ discordId: selectedUser.id });
+            if (!user) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Account Not Found")
+                    .setDescription(`**${selectedUser.tag}** does not own an account.`);
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
+
+            const profile = await Profiles.findOne({ accountId: user.accountId });
+            if (!profile) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Profile Not Found")
+                    .setDescription("That user does not have a profile.");
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
+
+            const apiRes = await axios.get(`https://fortnite-api.com/v2/cosmetics/br/search`, { params: { name: cosmeticname } });
+            const cosmeticFromAPI = apiRes?.data?.data;
 
             if (!cosmeticFromAPI) {
-                return interaction.editReply({ content: "Could not find the cosmetic" });
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Cosmetic Not Found")
+                    .setDescription(`Could not find cosmetic **${cosmeticname}** on the API.`);
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
             }
 
-            const cosmeticimage = cosmeticFromAPI.images.icon;
-
-            const regex = /^(?:[A-Z][a-z]*\b\s*)+$/;
-            if (!regex.test(cosmeticname)) {
-                return interaction.editReply({ content: "Please check for correct casing. E.g 'renegade raider' is wrong, but 'Renegade Raider' is correct." });
+            const filePath = path.join(__dirname, "../../../Config/DefaultProfiles/allathena.json");
+            if (!fs.existsSync(filePath)) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("File Not Found")
+                    .setDescription("allathena.json not found on disk.");
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
             }
 
-            const file = fs.readFileSync(path.join(__dirname, "../../../Config/DefaultProfiles/allathena.json"));
-            const jsonFile = destr(file.toString());
-            const items = jsonFile.items;
-            let foundcosmeticname = "";
-            let found = false;
+            const fileRaw = fs.readFileSync(filePath, 'utf8');
+            const jsonFile = destr(fileRaw);
+            const items = jsonFile.items || {};
 
+            let foundKey = null;
             for (const key of Object.keys(items)) {
-                const [type, id] = key.split(":");
+                const parts = key.split(":");
+                const id = parts[1];
                 if (id === cosmeticFromAPI.id) {
-                    foundcosmeticname = key;
-                    if (!profile.profiles.athena.items[key]) {
-                        return interaction.editReply({ content: "That user does not have that cosmetic" });
-                    }
-                    found = true;
+                    foundKey = key;
                     break;
                 }
             }
 
-            if (!found) {
-                return interaction.editReply({ content: `Could not find the cosmetic ${cosmeticname} in user's profile` });
+            if (!foundKey) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Cosmetic Not Found")
+                    .setDescription(`Could not find **${cosmeticFromAPI.name}** in the default profiles.`);
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
+
+            if (!profile.profiles?.athena?.items?.[foundKey]) {
+                const embed = new MessageEmbed()
+                    .setColor("#FFD166")
+                    .setTitle("Cosmetic Not Owned")
+                    .setDescription(`**${selectedUser.tag}** does not own **${cosmeticFromAPI.name}**.`);
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
             }
 
             const update = { $unset: {} };
-            update.$unset[`profiles.athena.items.${foundcosmeticname}`] = "";
+            update.$unset[`profiles.athena.items.${foundKey}`] = "";
 
-            await Profiles.findOneAndUpdate(
+            const updated = await Profiles.findOneAndUpdate(
                 { accountId: user.accountId },
                 update,
                 { new: true }
-            ).catch(async (err) => {
-                return interaction.editReply({ content: "An error occurred while removing the cosmetic" });
-            });
+            );
+
+            if (!updated) {
+                const embed = new MessageEmbed()
+                    .setColor("#FF5555")
+                    .setTitle("Update Failed")
+                    .setDescription("An error occurred while removing the cosmetic.");
+                return interaction.editReply({ embeds: [embed], ephemeral: true });
+            }
 
             const embed = new MessageEmbed()
                 .setTitle("Cosmetic Removed")
-                .setDescription(`Successfully removed for ${selectedUser} the cosmetic **` + cosmeticname + `**`)
-                .setThumbnail(cosmeticimage)
-                .setColor("GREEN")
-                .setFooter({
-                    text: "Reload Backend",
-                    iconURL: "https://i.imgur.com/2RImwlb.png"
-                })
+                .setDescription(`Successfully removed **${cosmeticFromAPI.name}** from **${selectedUser.tag}**`)
+                .setThumbnail(cosmeticFromAPI.images?.icon || null)
+                .setColor("#FF5555")
+                .addFields(
+                    { name: "User", value: selectedUser.tag, inline: true },
+                    { name: "Account ID", value: `\`${user.accountId}\``, inline: true },
+                    { name: "Cosmetic", value: cosmeticFromAPI.name, inline: true }
+                )
+                .setFooter({ text: "Better Trikiz Backend", iconURL: "https://i.imgur.com/2RImwlb.png" })
                 .setTimestamp();
-            await interaction.editReply({ embeds: [embed] });
+
+            log.backend(`Cosmetic removed: ${cosmeticFromAPI.name} from ${user.username} by ${interaction.user.tag}`);
+
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         } catch (err) {
-            log.error("An error occurred:", err);
-            interaction.editReply({ content: "An error occurred. Please try again later." });
+            log.error("Error in removeitem command:", err);
+            const embed = new MessageEmbed()
+                .setColor("#FF5555")
+                .setTitle("Error")
+                .setDescription("An error occurred while removing the cosmetic. Please try again later.");
+            try {
+                await interaction.editReply({ embeds: [embed], ephemeral: true });
+            } catch (e) {}
         }
     }
 };

@@ -6,8 +6,9 @@ const config = JSON.parse(fs.readFileSync("./Config/config.json").toString());
 const log = require("../structs/log.js");
 const Users = require("../model/user.js");
 
-client.once("ready", () => {
+client.once("ready", async () => {
     log.bot("Bot is up and running!");
+    await client.application.fetch();
 
     if (config.bEnableBackendStatus) {
         if (!config.bBackendStatusChannelId || config.bBackendStatusChannelId.trim() === "") {
@@ -19,18 +20,16 @@ client.once("ready", () => {
             } else {
                 const embed = new MessageEmbed()
                     .setTitle("Backend Online")
-                    .setDescription("Reload Backend is now online")
+                    .setDescription("Better Trikiz Backend is now online")
                     .setColor("GREEN")
-                    .setThumbnail("https://i.imgur.com/2RImwlb.png")
+                    .setThumbnail("https://i.pinimg.com/1200x/b2/d4/aa/b2d4aae66d16b193703453c6095ddc70.jpg")
                     .setFooter({
-                        text: "Reload Backend",
-                        iconURL: "https://i.imgur.com/2RImwlb.png",
+                        text: "Better Trikiz Backend",
+                        iconURL: "https://i.pinimg.com/1200x/b2/d4/aa/b2d4aae66d16b193703453c6095ddc70.jpg",
                     })
                     .setTimestamp();
 
-                channel.send({ embeds: [embed] }).catch(err => {
-                    log.error(err);
-                });
+                channel.send({ embeds: [embed] }).catch(err => log.error(err));
             }
         }
     }
@@ -41,12 +40,9 @@ client.once("ready", () => {
                 client.user.setActivity(`${global.Clients.length} player(s)`, { type: "WATCHING" });
             }
         }
-
         updateBotStatus();
         setInterval(updateBotStatus, 10000);
     }
-
-    let commands = client.application.commands;
 
     const loadCommands = (dir) => {
         fs.readdirSync(dir).forEach(file => {
@@ -55,7 +51,13 @@ client.once("ready", () => {
                 loadCommands(filePath);
             } else if (file.endsWith(".js")) {
                 const command = require(filePath);
-                commands.create(command.commandInfo);
+                if (!command.commandInfo) return;
+                try {
+                    client.application.commands.create(command.commandInfo);
+                    log.bot(`✅ Commande enregistrée : ${command.commandInfo.name}`);
+                } catch (e) {
+                    log.error(`Erreur en enregistrant ${file}: ${e.message}`);
+                }
             }
         });
     };
@@ -85,13 +87,10 @@ client.on("interactionCreate", async interaction => {
 });
 
 client.on("guildBanAdd", async (ban) => {
-    if (!config.bEnableCrossBans) 
-        return;
+    if (!config.bEnableCrossBans) return;
 
     const memberBan = await ban.fetch();
-
-    if (memberBan.user.bot)
-        return;
+    if (memberBan.user.bot) return;
 
     const userData = await Users.findOne({ discordId: memberBan.user.id });
 
@@ -99,55 +98,43 @@ client.on("guildBanAdd", async (ban) => {
         await userData.updateOne({ $set: { banned: true } });
 
         let refreshToken = global.refreshTokens.findIndex(i => i.accountId == userData.accountId);
-
-        if (refreshToken != -1)
-            global.refreshTokens.splice(refreshToken, 1);
+        if (refreshToken != -1) global.refreshTokens.splice(refreshToken, 1);
         let accessToken = global.accessTokens.findIndex(i => i.accountId == userData.accountId);
-
         if (accessToken != -1) {
             global.accessTokens.splice(accessToken, 1);
             let xmppClient = global.Clients.find(client => client.accountId == userData.accountId);
-            if (xmppClient)
-                xmppClient.client.close();
+            if (xmppClient) xmppClient.client.close();
         }
 
-        if (accessToken != -1 || refreshToken != -1) {
-            await functions.UpdateTokens();
-        }
+        if (accessToken != -1 || refreshToken != -1) await functions.UpdateTokens();
 
         log.debug(`user ${memberBan.user.username} (ID: ${memberBan.user.id}) was banned on the discord and also in the game (Cross Ban active).`);
     }
 });
 
 client.on("guildBanRemove", async (ban) => {
-    if (!config.bEnableCrossBans) 
-        return;
-
-    if (ban.user.bot)
-        return;
+    if (!config.bEnableCrossBans) return;
+    if (ban.user.bot) return;
 
     const userData = await Users.findOne({ discordId: ban.user.id });
-    
     if (userData && userData.banned === true) {
         await userData.updateOne({ $set: { banned: false } });
-
         log.debug(`User ${ban.user.username} (ID: ${ban.user.id}) is now unbanned.`);
     }
 });
 
-//AntiCrash System
 client.on("error", (err) => {
     console.log("Discord API Error:", err);
 });
-  
+
 process.on("unhandledRejection", (reason, p) => {
     console.log("Unhandled promise rejection:", reason, p);
 });
-  
+
 process.on("uncaughtException", (err, origin) => {
     console.log("Uncaught Exception:", err, origin);
 });
-  
+
 process.on("uncaughtExceptionMonitor", (err, origin) => {
     console.log("Uncaught Exception Monitor:", err, origin);
 });

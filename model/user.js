@@ -12,7 +12,11 @@ const UserSchema = new mongoose.Schema(
         password: { type: String, required: true },
         matchmakingId: { type: String, required: true, unique: true},
         isServer: { type: Boolean, default: false},
-        currentSACCode: { type: String, default: null }
+        currentSACCode: { type: String, default: null },
+        lastEmailChange: { type: Date, default: null },
+        lastPasswordChange: { type: Date, default: null },
+        lastUsernameChange: { type: Date, default: null },
+        usernameHistory: { type: [String], default: [] }
     },
     {
         collection: "users"

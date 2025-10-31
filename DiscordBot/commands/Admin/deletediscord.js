@@ -11,11 +11,11 @@ const config = require('../../../Config/config.json');
 module.exports = {
     commandInfo: {
         name: "deletediscord",
-        description: "Deletes a user's account",
+        description: "Deletes a user's account by Discord user",
         options: [
             {
-                name: "username",
-                description: "Target username.",
+                name: "user",
+                description: "Target Discord user.",
                 required: true,
                 type: 6
             }
@@ -24,73 +24,127 @@ module.exports = {
     execute: async (interaction) => {
         await interaction.deferReply({ ephemeral: true });
 
-        if (!config.moderators.includes(interaction.user.id)) {
-            return interaction.editReply({ content: "You do not have moderator permissions.", ephemeral: true });
+        if (!Array.isArray(config.moderators) || !config.moderators.includes(interaction.user.id)) {
+            const embed = new MessageEmbed()
+                .setColor("#FF5555")
+                .setTitle("Permission Denied")
+                .setDescription("You do not have moderator permissions.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
 
-        const discordId = interaction.options.getUser('username').id;
-        const user = interaction.options.getUser('username');
+        const targetUser = interaction.options.getUser('user');
+        if (!targetUser) {
+            const embed = new MessageEmbed()
+                .setColor("#FFAA33")
+                .setTitle("Invalid Input")
+                .setDescription("Please provide a valid Discord user.");
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
+        }
+
+        const discordId = targetUser.id;
         const deleteAccount = await Users.findOne({ discordId: discordId });
 
         if (!deleteAccount) {
-            await interaction.editReply({ content: "The selected user does not have **an account**", ephemeral: true });
-            return;
+            const embed = new MessageEmbed()
+                .setColor("#FF5555")
+                .setTitle("Account Not Found")
+                .setDescription(`**${targetUser.tag}** does not have a registered account.`);
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
 
         const accountId = deleteAccount.accountId;
-        let somethingDeleted = false;
+        const username = deleteAccount.username;
+        const deletionResults = {
+            user: false,
+            profile: false,
+            friends: false,
+            sac: false,
+            settings: false
+        };
 
-        await Users.deleteOne({ discordId: discordId }).then(() => {
-            somethingDeleted = true;
-        }).catch(error => {
+        try {
+            const userResult = await Users.deleteOne({ discordId: discordId });
+            deletionResults.user = userResult.deletedCount > 0;
+        } catch (error) {
             log.error('Error deleting from Users:', error);
-        });
+        }
 
-        await Profiles.deleteOne({ accountId: accountId }).then(() => {
-            somethingDeleted = true;
-        }).catch(error => {
+        try {
+            const profileResult = await Profiles.deleteOne({ accountId: accountId });
+            deletionResults.profile = profileResult.deletedCount > 0;
+        } catch (error) {
             log.error('Error deleting from Profiles:', error);
-        });
+        }
 
-        await Friends.deleteOne({ accountId: accountId }).then(() => {
-            somethingDeleted = true;
-        }).catch(error => {
+        try {
+            const friendsResult = await Friends.deleteOne({ accountId: accountId });
+            deletionResults.friends = friendsResult.deletedCount > 0;
+        } catch (error) {
             log.error('Error deleting from Friends:', error);
-        });
+        }
 
-        await SACCodes.deleteOne({ owneraccountId: accountId }).then(() => {
-            somethingDeleted = true;
-        }).catch(error => {
+        try {
+            const sacResult = await SACCodes.deleteOne({ owneraccountId: accountId });
+            deletionResults.sac = sacResult.deletedCount > 0;
+        } catch (error) {
             log.error('Error deleting from SACCodes:', error);
-        });
+        }
 
         const clientSettingsPath = path.join(__dirname, '../../../ClientSettings', accountId);
         if (fs.existsSync(clientSettingsPath)) {
-            fs.rmSync(clientSettingsPath, { recursive: true, force: true });
-            somethingDeleted = true;
+            try {
+                fs.rmSync(clientSettingsPath, { recursive: true, force: true });
+                deletionResults.settings = true;
+            } catch (error) {
+                log.error('Error deleting ClientSettings:', error);
+            }
         }
 
+        const somethingDeleted = Object.values(deletionResults).some(v => v === true);
         if (!somethingDeleted) {
-            await interaction.editReply({ content: `No data found to delete for **${deleteAccount.username}**.`, ephemeral: true });
-            return;
+            const embed = new MessageEmbed()
+                .setColor("#FFD166")
+                .setTitle("No Data Deleted")
+                .setDescription(`No data found to delete for **${username}**.`);
+            return interaction.editReply({ embeds: [embed], ephemeral: true });
         }
+
+        const deletedItems = [];
+        if (deletionResults.user) deletedItems.push("User account");
+        if (deletionResults.profile) deletedItems.push("Profile data");
+        if (deletionResults.friends) deletedItems.push("Friends list");
+        if (deletionResults.sac) deletedItems.push("SAC codes");
+        if (deletionResults.settings) deletedItems.push("Client settings");
 
         const embed = new MessageEmbed()
-            .setTitle("Account deleted")
-            .setDescription("The account has been **deleted**")
-            .setColor("GREEN")
-            .setFooter({
-                text: "Reload Backend",
-                iconURL: "https://i.imgur.com/2RImwlb.png"
-            })
+            .setTitle("Account Deleted")
+            .setDescription(`Successfully deleted account for **${targetUser.tag}**`)
+            .setColor("#E74C3C")
+            .addFields(
+                { name: "Discord User", value: `${targetUser.tag}`, inline: true },
+                { name: "Username", value: username, inline: true },
+                { name: "Account ID", value: `\`${accountId}\``, inline: true },
+                { name: "Deleted Items", value: deletedItems.join("\n") || "None", inline: false }
+            )
+            .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+            .setFooter({ text: "Better Trikiz Backend", iconURL: "https://i.imgur.com/2RImwlb.png" })
             .setTimestamp();
 
         await interaction.editReply({ embeds: [embed], ephemeral: true });
 
         try {
-            await user.send({ content: `Your account has been deleted by <@${interaction.user.id}>` });
+            const dmEmbed = new MessageEmbed()
+                .setColor("#E74C3C")
+                .setTitle("Account Deleted")
+                .setDescription(`Your Better Trikiz Backend account has been deleted by a moderator.`)
+                .addFields(
+                    { name: "Deleted By", value: `${interaction.user.tag}`, inline: true },
+                    { name: "Username", value: username, inline: true }
+                )
+                .setTimestamp();
+            await targetUser.send({ embeds: [dmEmbed] });
         } catch (error) {
-            log.error('Could not send DM:', error);
+            log.error('Could not send DM to deleted user:', error);
         }
     }
 };
