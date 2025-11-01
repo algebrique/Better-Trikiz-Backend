@@ -2,50 +2,63 @@
   "//": "BR Item Shop Config",
   "daily1": {
     "itemGrants": [
-      "AthenaCharacter:CID_221_Athena_Commando_M_Clown"
-    ],
-    "price": 1500
-  },
-  "daily2": {
-    "itemGrants": [
-      "AthenaCharacter:CID_A_104_Athena_Commando_M_TowerSentinel"
-    ],
-    "price": 1500
-  },
-  "daily3": {
-    "itemGrants": [
-      "AthenaCharacter:CID_416_Athena_Commando_M_AssassinSuit"
-    ],
-    "price": 2000
-  },
-  "daily4": {
-    "itemGrants": [
-      "AthenaDance:EID_IceKing"
-    ],
-    "price": 500
-  },
-  "daily5": {
-    "itemGrants": [
-      "AthenaBackpack:BID_469_Wings"
+      "AthenaCharacter:CID_649_Athena_Commando_F_HolidayPJ"
     ],
     "price": 800
   },
+  "daily2": {
+    "itemGrants": [
+      "AthenaMusicPack:MusicPack_039_Envy"
+    ],
+    "price": 300
+  },
+  "daily3": {
+    "itemGrants": [
+      "AthenaDance:EID_KpopDance04"
+    ],
+    "price": 500
+  },
+  "daily4": {
+    "itemGrants": [
+      "AthenaCharacter:CID_297_Athena_Commando_F_Math",
+      "AthenaBackpack:BID_170_MathFemale"
+    ],
+    "price": 1200
+  },
+  "daily5": {
+    "itemGrants": [
+      "AthenaDance:EID_HeadShake"
+    ],
+    "price": 500
+  },
   "daily6": {
     "itemGrants": [
-      "AthenaGlider:Glider_ID_238_Soy_RWO5D"
+      "AthenaGlider:Glider_ID_206_Donut"
     ],
-    "price": 1000
+    "price": 1200
   },
   "featured1": {
     "itemGrants": [
-      "AthenaCharacter:CID_750_Athena_Commando_M_Hurricane"
+      "AthenaCharacter:CID_761_Athena_Commando_M_CycloneSpace",
+      "AthenaBackpack:BID_520_CycloneUniverse"
     ],
-    "price": 2000
+    "price": 1500
   },
   "featured2": {
     "itemGrants": [
-      "AthenaCharacter:CID_454_Athena_Commando_M_GlowBro"
+      "AthenaCharacter:CID_703_Athena_Commando_M_Cyclone",
+      "AthenaBackpack:BID_468_Cyclone"
+    
     ],
     "price": 1500
+  },
+  "featured3": {
+    "itemGrants": [
+      "AthenaDance:EID_CycloneHeadBang",
+      "AthenaWrap:Wrap_210_Thermal",
+      "AthenaPickaxe:Pickaxe_ID_359_CycloneMale"
+    ],
+    "Name": "Jerky Bundle",
+    "price": 3000
   }
 }

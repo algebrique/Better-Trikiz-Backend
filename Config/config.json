@@ -37,12 +37,15 @@
   },
   "matchmakerIP": "IP:Port",
   "gameServerIP": [
-    "IP:Port:playlist_defaultsolo"
+    "IP:Port:playlist_defaultsolo",
+    "IP:Port:Playlist_DefaultDuo",
+    "IP:Port:Playlist_DefaultSquad",
+    "IP:Port:Playlist_Playlist_Music_High"
   ],
   "bEnableBattlepass": false,
-  "bBattlePassSeason": 2,
+  "bBattlePassSeason": 12,
   "bEnableOnlyOneVersionJoinable": false,
-  "bVersionJoinable": 7.4,
+  "bVersionJoinable": 12.41,
   "bUseAutoRotate": true,
   "bEnableAutoRotateDebugLogs": false,
   "bEnableDiscordWebhook": false,
@@ -82,7 +85,7 @@
     "key": "./ssl/example_private.key"
   },
   "bEnableCalderaService": false,
-  "bGameVersion": "27.11",
+  "bGameVersion": "12.41",
   "bCalderaServicePort": 5000,
   "bEnableGeodeEvent": false,
   "geodeEventStartDate": "2020-01-01T00:00:00.000Z",
