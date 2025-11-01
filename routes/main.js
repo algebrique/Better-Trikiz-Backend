@@ -175,15 +175,29 @@ app.post("/statsproxy/api/statsv2/query", (req, res) => {
     res.json([]);
 });
 
-app.post("/fortnite/api/game/v2/events/v2/setSubgroup/*", (req, res) => {
+app.post("/fortnite/api/game/v2/events/v2/setSubgroup/*", async (req, res) => {
     log.debug("POST /fortnite/api/game/v2/events/v2/setSubgroup/* called");
-    res.status(204);
-    res.end();
+    const eventId = req.url.split("/setSubgroup/")[1];
+    if (req.body && req.body.subgroupId) {
+        log.debug(`User selected subgroup: ${req.body.subgroupId} for event: ${eventId}`);
+    }
+    
+    res.status(204).end();
 });
 
 app.get("/fortnite/api/game/v2/enabled_features", (req, res) => {
     log.debug("GET /fortnite/api/game/v2/enabled_features called");
     res.json([]);
+});
+
+app.get("/content-controls/:accountId", (req, res) => {
+    log.debug(`GET /content-controls/${req.params.accountId} called`);
+    res.json({});
+});
+
+app.get("/api/v1/Fortnite/get", (req, res) => {
+    log.debug("GET /api/v1/Fortnite/get called");
+    res.json({});
 });
 
 app.get("/api/v1/events/Fortnite/download/*", (req, res) => {
@@ -211,6 +225,26 @@ app.get("/presence/api/v1/_/*/last-online", async (req, res) => {
     log.debug("GET /presence/api/v1/_/*/last-online called");
     res.json({})
 })
+
+app.get("/presence/api/v1/_/:accountId/settings/subscriptions", (req, res) => {
+    log.debug(`GET /presence/api/v1/_/${req.params.accountId}/settings/subscriptions called`);
+    res.json({});
+});
+
+app.get("/presence/api/v1/_/:accountId/subscriptions", (req, res) => {
+    log.debug(`GET /presence/api/v1/_/${req.params.accountId}/subscriptions called`);
+    res.json({});
+});
+
+app.get("/presence/api/v1/Fortnite/:accountId/subscriptions/nudged", (req, res) => {
+    log.debug(`GET /presence/api/v1/Fortnite/${req.params.accountId}/subscriptions/nudged called`);
+    res.json([]);
+});
+
+app.post("/presence/api/v1/Fortnite/:accountId/subscriptions/broadcast", (req, res) => {
+    log.debug(`POST /presence/api/v1/Fortnite/${req.params.accountId}/subscriptions/broadcast called`);
+    res.status(204).end();
+});
 
 app.get("/fortnite/api/receipts/v1/account/*/receipts", (req, res) => {
     log.debug("GET /fortnite/api/receipts/v1/account/*/receipts called");

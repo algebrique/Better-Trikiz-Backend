@@ -46,6 +46,11 @@
   "bUseAutoRotate": true,
   "bEnableAutoRotateDebugLogs": false,
   "bEnableDiscordWebhook": false,
+  "webhooks": {
+    "urls": [
+      
+    ]
+  },
   "bChapterlimit": "3",
   "bSeasonlimit": "2",
   "bRotateTime": "00:00",

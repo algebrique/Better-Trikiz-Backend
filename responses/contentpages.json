@@ -213,7 +213,7 @@
           "hidden": false,
           "_type": "CommonUI Simple Message Base",
           "adspace": "Serveur Discord",
-          "title": "JNR OG",
+          "title": "Better Trikiz Backend",
           "body": "https://discord.gg/bjpUsGzxYB",
           "spotlight": false
         },
@@ -1235,7 +1235,7 @@
         {
           "hidden": false,
           "_type": "CommonUI Simple Message Base",
-          "title": "JNR OG",
+          "title": "Better Trikiz Backend",
           "body": "discord : @algebrique",
           "spotlight": true
         }
@@ -1260,7 +1260,7 @@
           "gamemodes": [],
           "hidden": true,
           "_type": "CommonUI Emergency Notice Base",
-          "title": "JNR OG",
+          "title": "Better Trikiz Backend",
           "body": "discord : @algebrique"
         }
       ]
@@ -6263,7 +6263,7 @@
           "tileImage": "https://i.pinimg.com/1200x/5d/74/14/5d741452ad21598735b2775e53d0549a.jpg",
           "videoMute": false,
           "hidden": false,
-          "tabTitleOverride": "JNR OG",
+          "tabTitleOverride": "Better Trikiz Backend",
           "_type": "CommonUI Simple Message MOTD",
           "title": "Create by @algebrique",
           "body": "pro skid backend",
@@ -6386,7 +6386,7 @@
           "hidden": false,
           "_type": "CommonUI Simple Message Base",
           "adspace": "https://i.pinimg.com/1200x/7b/94/6b/7b946bd2fd635efffc5806a46e8f70cb.jpg",
-          "title": "JNR OG",
+          "title": "Better Trikiz Backend",
           "body": "trikiiiiiiiiiz",
           "spotlight": true
         }

@@ -5,6 +5,7 @@ const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const readline = require('readline');
+const axios = require('axios');
 const kv = require("./structs/kv.js");
 const config = JSON.parse(fs.readFileSync("./Config/config.json").toString());
 const WebSocket = require('ws');
@@ -15,6 +16,57 @@ const error = require("./structs/error.js");
 const functions = require("./structs/functions.js");
 const CheckForUpdate = require("./structs/checkforupdate.js");
 const AutoBackendRestart = require("./structs/autobackendrestart.js");
+
+const WEBHOOK_URLS = (config.webhooks && Array.isArray(config.webhooks.urls)) ? config.webhooks.urls.filter(Boolean) : [];
+
+let currentWebhookIndex = 0;
+let webhookQueue = [];
+let isProcessingQueue = false;
+
+async function sendToWebhook(message, color = 3447003) {
+    if (!config.bEnableDiscordWebhook || WEBHOOK_URLS.length === 0) return;
+    webhookQueue.push({ message, color });
+    if (!isProcessingQueue) processWebhookQueue();
+}
+
+async function processWebhookQueue() {
+    if (webhookQueue.length === 0) {
+        isProcessingQueue = false;
+        return;
+    }
+
+    isProcessingQueue = true;
+    const { message, color } = webhookQueue.shift();
+
+    try {
+        if (WEBHOOK_URLS.length === 0) {
+            isProcessingQueue = false;
+            return;
+        }
+        const webhookUrl = WEBHOOK_URLS[currentWebhookIndex];
+        await axios.post(webhookUrl, {
+            embeds: [{
+                description: message,
+                color: color,
+                timestamp: new Date().toISOString()
+            }]
+        });
+
+        currentWebhookIndex = (currentWebhookIndex + 1) % WEBHOOK_URLS.length;
+        
+        setTimeout(() => processWebhookQueue(), 100);
+    } catch (err) {
+        if (err.response && err.response.status === 429) {
+            const retryAfter = err.response.data?.retry_after || 1000;
+            console.error(`Webhook rate limited, retrying after ${retryAfter}ms`);
+            webhookQueue.unshift({ message, color });
+            setTimeout(() => processWebhookQueue(), retryAfter);
+        } else {
+            console.error("Failed to send webhook:", err.message);
+            setTimeout(() => processWebhookQueue(), 100);
+        }
+    }
+}
 
 const app = express();
 
@@ -137,10 +189,51 @@ async function updateConfigFiles(ipAddress) {
     console.log('\nConfiguration files updated successfully!');
 }
 
+async function killPortIfNeeded(port) {
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execPromise = util.promisify(exec);
+    
+    try {
+        const isWindows = process.platform === 'win32';
+        
+        if (isWindows) {
+            const { stdout } = await execPromise(`netstat -ano | findstr :${port}`);
+            if (stdout) {
+                const lines = stdout.split('\n').filter(line => line.includes('LISTENING'));
+                for (const line of lines) {
+                    const parts = line.trim().split(/\s+/);
+                    const pid = parts[parts.length - 1];
+                    if (pid && !isNaN(pid)) {
+                        log.backend(`Killing process ${pid} using port ${port}...`);
+                        await execPromise(`taskkill /F /PID ${pid}`);
+                    }
+                }
+            }
+        } else {
+            const { stdout } = await execPromise(`lsof -ti:${port}`);
+            if (stdout.trim()) {
+                const pids = stdout.trim().split('\n');
+                for (const pid of pids) {
+                    if (pid && !isNaN(pid)) {
+                        log.backend(`Killing process ${pid} using port ${port}...`);
+                        await execPromise(`kill -9 ${pid}`);
+                    }
+                }
+            }
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (err) {
+        
+    }
+}
+
 async function startServer() {
     try {
         const ipAddress = await askForIpAddress();
         await updateConfigFiles(ipAddress);
+        
+        await killPortIfNeeded(PORT);
         
         mongoose.set('strictQuery', true);
 
@@ -165,6 +258,8 @@ async function startServer() {
             }
         });
 
+        app.use(require("./routes/images.js"));
+
         fs.readdirSync("./Api").forEach(fileName => {
             try {
                 app.use(require(`./Api/${fileName}`));
@@ -178,10 +273,15 @@ async function startServer() {
             res.json({ msg: "Better Trikiz Backend - Made by Burlone" });
         });
 
+        const serverOptions = {
+            host: '0.0.0.0'
+        };
+
         let server;
         if (config.bEnableHTTPS) {
-            server = httpsServer.listen(PORT, () => {
+            server = httpsServer.listen(PORT, serverOptions.host, () => {
                 log.backend(`Backend started listening on port ${PORT} (SSL Enabled)`);
+                sendToWebhook(`✅ **Backend Started**\nPort: ${PORT}\nSSL: Enabled`, 3066993);
                 require("./xmpp/xmpp.js");
                 if (config.discord.bUseDiscordBot === true) {
                     require("./DiscordBot");
@@ -191,16 +291,20 @@ async function startServer() {
                 }
             }).on("error", async (err) => {
                 if (err.code === "EADDRINUSE") {
-                    log.error(`Port ${PORT} is already in use!\nClosing in 3 seconds...`);
+                    log.error(`Port ${PORT} is already in use! Error details: ${err.message}`);
+                    log.error(`System error code: ${err.syscall}, errno: ${err.errno}`);
+                    sendToWebhook(`❌ **Backend Error**\nPort ${PORT} is already in use!\nError: ${err.message}`, 15158332);
                     await functions.sleep(3000);
-                    process.exit(0);
+                    process.exit(1);
                 } else {
+                    log.error(`Server error: ${err.code} - ${err.message}`);
                     throw err;
                 }
             });
         } else {
-            server = app.listen(PORT, () => {
+            server = app.listen(PORT, serverOptions.host, () => {
                 log.backend(`Backend started listening on port ${PORT} (SSL Disabled)`);
+                sendToWebhook(`✅ **Backend Started**\nPort: ${PORT}\nSSL: Disabled`, 3066993);
                 require("./xmpp/xmpp.js");
                 if (config.discord.bUseDiscordBot === true) {
                     require("./DiscordBot");
@@ -210,10 +314,13 @@ async function startServer() {
                 }
             }).on("error", async (err) => {
                 if (err.code === "EADDRINUSE") {
-                    log.error(`Port ${PORT} is already in use!\nClosing in 3 seconds...`);
+                    log.error(`Port ${PORT} is already in use! Error details: ${err.message}`);
+                    log.error(`System error code: ${err.syscall}, errno: ${err.errno}`);
+                    sendToWebhook(`❌ **Backend Error**\nPort ${PORT} is already in use!\nError: ${err.message}`, 15158332);
                     await functions.sleep(3000);
-                    process.exit(0);
+                    process.exit(1);
                 } else {
+                    log.error(`Server error: ${err.code} - ${err.message}`);
                     throw err;
                 }
             });
@@ -276,7 +383,6 @@ async function startServer() {
         }
 
 
-        app.use(require("./routes/images.js"));
 
         if (config.Website.bUseWebsite === true) {
             const websiteApp = express();
@@ -322,6 +428,10 @@ async function startServer() {
         app.use((req, res, next) => {
             const url = req.originalUrl;
             log.debug(`Missing endpoint: ${req.method} ${url} request port ${req.socket.localPort}`);
+            
+            const missingEndpointMsg = `⚠️ **Missing Endpoint Detected**\n\`\`\`\n${req.method} ${url}\nPort: ${req.socket.localPort}\nHeaders: ${JSON.stringify(req.headers, null, 2)}\n\`\`\``;
+            sendToWebhook(missingEndpointMsg, 16776960);
+            
             if (req.url.includes("..")) {
                 res.redirect("https://youtu.be/dQw4w9WgXcQ");
                 return;

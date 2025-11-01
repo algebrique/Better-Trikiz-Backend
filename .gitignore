@@ -2,3 +2,5 @@ ClientSettings/
 *.Sav
 node_modules/
 tokenManager/tokens.json
+/FortniteEndpointsDocumentation-main/.github
+/FortniteEndpointsDocumentation-main

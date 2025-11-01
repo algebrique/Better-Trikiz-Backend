@@ -24,6 +24,11 @@ app.get("/friends/api/public/list/fortnite/*/recentPlayers", (req, res) => {
     res.json([]);
 });
 
+app.get("/friends/api/v1/:accountId/recent/fortnite", (req, res) => {
+    log.debug(`GET /friends/api/v1/${req.params.accountId}/recent/fortnite called`);
+    res.json([]);
+});
+
 app.all("/friends/api/v1/*/friends/:friendId/alias", verifyToken, getRawBody, async (req, res) => {
     log.debug(`ALL /friends/api/v1/*/friends/${req.params.friendId}/alias called with method ${req.method}`);
     let friends = await Friends.findOne({ accountId: req.user.accountId });

@@ -93,27 +93,65 @@ app.post("/fortnite/api/leaderboards/type/global/stat/:leaderboardName/window/:t
 
 app.post("/*/api/statsv2/query", verifyToken, async (req, res) => {
     log.debug(`POST /*/api/statsv2/query called`);
-    if (!req.body.stats) return res.status(400).end();
-    const statKey = req.body.stats[0];
-    const playlist = statKey.split("playlist_default")[1];
-    const typeStat = statKey.split("_keyboardmouse")[0].split("br_")[1];
-    const stats = await UserStats.find({});
-    if (!stats) return res.status(404).end();
     const clientsStats = [];
 
-    for (var owner of req.body.owners) {
+    if (!req.body.owners || !Array.isArray(req.body.owners)) {
+        return res.status(400).json({ error: "owners array required" });
+    }
+
+    for (const owner of req.body.owners) {
         const individualStat = await UserStats.findOne({ accountId: owner });
         if (!individualStat) continue;
-        if (individualStat[playlist] == undefined) continue;
-        if (individualStat[playlist][typeStat] == undefined) continue;
+
+        const statsObj = {};
+        
+        if (req.body.stats && Array.isArray(req.body.stats) && req.body.stats.length > 0) {
+            for (const statKey of req.body.stats) {
+                try {
+                    
+                    const parts = statKey.split("_");
+                    const playlistMatch = statKey.match(/playlist_default(\w+)/);
+                    const statTypeMatch = statKey.match(/br_(\w+)_/);
+                    
+                    if (playlistMatch && statTypeMatch) {
+                        const playlist = playlistMatch[1];
+                        const typeStat = statTypeMatch[1];
+                        
+                        if (individualStat[playlist] && individualStat[playlist][typeStat] !== undefined) {
+                            statsObj[statKey] = individualStat[playlist][typeStat];
+                        } else {
+                            statsObj[statKey] = 0;
+                        }
+                    } else {
+                        
+                        statsObj[statKey] = 0;
+                    }
+                } catch (err) {
+                    statsObj[statKey] = 0;
+                }
+            }
+        } else {
+            
+            const modes = ['solo', 'duo', 'squad'];
+            const statTypes = ['kills', 'placetop1', 'matchesplayed', 'minutesplayed'];
+            
+            for (const mode of modes) {
+                if (individualStat[mode]) {
+                    for (const stat of statTypes) {
+                        if (individualStat[mode][stat] !== undefined) {
+                            const key = `br_${stat}_keyboardmouse_m0_playlist_default${mode}`;
+                            statsObj[key] = individualStat[mode][stat];
+                        }
+                    }
+                }
+            }
+        }
 
         clientsStats.push({
-            accountId: individualStat.accountId,
-            endTime: req.body.endTime || 0,
+            accountId: owner,
             startTime: req.body.startTime || 0,
-            stats: {
-                [statKey]: individualStat[playlist][typeStat] || 0
-            }
+            endTime: req.body.endTime || 9223372036854775807,
+            stats: statsObj
         });
     }
 

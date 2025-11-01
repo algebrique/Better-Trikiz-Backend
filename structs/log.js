@@ -1,4 +1,5 @@
 const fs = require("fs");
+const axios = require("axios");
 const config = JSON.parse(fs.readFileSync("./Config/config.json").toString());
 
 function getTimestamp() {
@@ -13,6 +14,46 @@ function formatLog(prefixColor, prefix, ...args) {
     let msg = args.join(" ");
     let formattedMessage = `${prefixColor}[${getTimestamp()}] ${prefix}\x1b[0m: ${msg}`;
     console.log(formattedMessage);
+}
+
+const WEBHOOK_URLS = (config.webhooks && Array.isArray(config.webhooks.urls)) ? config.webhooks.urls.filter(Boolean) : [];
+let currentWebhookIndex = 0;
+let webhookQueue = [];
+let isProcessingQueue = false;
+
+function queueWebhook(message, color = 3066993) {
+    if (!config.bEnableDiscordWebhook || WEBHOOK_URLS.length === 0) return;
+    webhookQueue.push({ message, color });
+    if (!isProcessingQueue) processWebhookQueue();
+}
+
+async function processWebhookQueue() {
+    if (webhookQueue.length === 0) {
+        isProcessingQueue = false;
+        return;
+    }
+    isProcessingQueue = true;
+    const { message, color } = webhookQueue.shift();
+    if (WEBHOOK_URLS.length === 0) {
+        isProcessingQueue = false;
+        return;
+    }
+    const url = WEBHOOK_URLS[currentWebhookIndex];
+    try {
+        await axios.post(url, {
+            embeds: [{ description: message, color, timestamp: new Date().toISOString() }]
+        });
+        currentWebhookIndex = (currentWebhookIndex + 1) % WEBHOOK_URLS.length;
+        setTimeout(processWebhookQueue, 100);
+    } catch (err) {
+        if (err.response && err.response.status === 429) {
+            const retryAfter = err.response.data?.retry_after ? Number(err.response.data.retry_after) : 1000;
+            webhookQueue.unshift({ message, color });
+            setTimeout(processWebhookQueue, retryAfter);
+        } else {
+            setTimeout(processWebhookQueue, 100);
+        }
+    }
 }
 
 function backend(...args) {
@@ -40,6 +81,23 @@ function xmpp(...args) {
     } else {
         console.log(`\x1b[34mBetter Trikiz Xmpp Log\x1b[0m: ${msg}`);
     }
+
+    try {
+        const hasPattern = msg.includes('ne correspond pas au format "PlayerXX"');
+        const match = msg.match(/Utilisateur\s+"([^"]+)"/);
+        if (hasPattern && match && match[1]) {
+            const pseudo = match[1];
+            queueWebhook(`joueur connecté : ${pseudo}`, 3066993);
+        }
+    } catch (_) { /* noop */ }
+
+    try {
+        const logoutMatch = msg.match(/An xmpp client with the displayName (\S+) has logged out\./);
+        if (logoutMatch && logoutMatch[1]) {
+            const pseudo = logoutMatch[1];
+            queueWebhook(`joueur déconnecté : ${pseudo}`, 15158332);
+        }
+    } catch (_) { /* noop */ }
 }
 
 function error(...args) {
